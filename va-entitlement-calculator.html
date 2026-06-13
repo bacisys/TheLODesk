@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VA Entitlement Calculator · The Desk</title>
+<meta name="description" content="Pro-grade VA entitlement calculator for loan originators. Compute remaining entitlement, zero-down ceiling, and required down payment from COE figures and 2026 county limits." />
+<meta name="robots" content="index, follow" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,ital,wght@9..144,0,300;9..144,0,400;9..144,0,500;9..144,1,300;9..144,1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="desk.css">
+</head>
+<body>
+
+<!-- Top compliance banner -->
+<div class="top-banner">
+  <div class="container">
+    <div class="badges">
+      <span class="badge"><span class="eho-icon"></span> Equal Housing Opportunity</span>
+      <span class="badge">NMLS #1909129</span>
+      <span class="badge">Barrett Financial Group · NMLS #181106</span>
+    </div>
+    <div>For licensed mortgage professionals · Educational use</div>
+  </div>
+</div>
+
+<!-- Nav -->
+<header class="nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="brand">
+      <div class="brand-mark">D</div>
+      <div class="brand-text">
+        <div class="brand-name">The Desk</div>
+        <div class="brand-sub">By Check with Chuck</div>
+      </div>
+    </a>
+    <nav class="nav-links">
+      <a href="index.html#tools">Tools</a>
+      <a href="index.html#reference">Reference</a>
+      <a href="index.html#scenarios">Scenarios</a>
+      <a href="index.html#about">About</a>
+    </nav>
+    <a href="https://www.charlesbacigalupi.com" class="nav-back">← checkwithchuck.com</a>
+  </div>
+</header>
+
+<!-- Tool page -->
+<section class="tool-page">
+  <div class="container">
+
+    <div class="tool-page-head">
+      <div class="breadcrumb"><a href="index.html">The Desk</a> · VA Loans · <span style="color: var(--bone);">Entitlement Calculator</span></div>
+      <h1>VA Entitlement <em>Calculator</em></h1>
+      <p class="tool-lede">Compute remaining entitlement, the zero-down loan ceiling, and any required down payment from COE figures and the current county loan limit. Pulls 2026 conforming limits as presets.</p>
+    </div>
+
+    <div class="calc-grid">
+      <div class="calc-input">
+        <h3>Inputs</h3>
+        <p class="calc-sub">All figures from the borrower's Certificate of Eligibility.</p>
+
+        <div class="toggle" role="tablist">
+          <button class="active" id="btn-partial" type="button">Partial entitlement</button>
+          <button id="btn-full" type="button">Full entitlement</button>
+        </div>
+
+        <div id="partial-inputs">
+          <div class="field">
+            <label class="field-label" for="county-limit">County One-Unit Loan Limit</label>
+            <div class="input-wrap with-prefix" data-prefix="$">
+              <input type="number" id="county-limit" value="832750" step="1000" min="0">
+            </div>
+            <div class="presets">
+              <button class="preset" data-limit="832750" type="button">Baseline · $832,750</button>
+              <button class="preset" data-limit="1249125" type="button">High-cost ceiling · $1,249,125</button>
+            </div>
+            <p class="field-hint">2026 FHFA one-unit conforming limit for the subject property's county. Baseline ($832,750) applies in most counties; high-cost counties scale up to the $1,249,125 ceiling, which is also the limit used in Alaska, Hawaii, Guam, and the USVI. Enter the exact county figure for limits between the two.</p>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="entitlement-charged">Entitlement Charged to Prior VA Loans</label>
+            <div class="input-wrap with-prefix" data-prefix="$">
+              <input type="number" id="entitlement-charged" value="0" step="1000" min="0">
+            </div>
+            <p class="field-hint">From the COE line "Total Entitlement Charged to Previous VA Loans." Generally 25% of any outstanding prior VA loan principal, or the original guaranty amount on a prior loan still tying up entitlement.</p>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="purchase-price">Target Purchase Price <span style="text-transform: none; letter-spacing: 0; color: var(--charcoal-500); font-weight: 400;">— optional</span></label>
+            <div class="input-wrap with-prefix" data-prefix="$">
+              <input type="number" id="purchase-price" value="0" step="1000" min="0">
+            </div>
+            <p class="field-hint">Optional. If supplied, the panel calculates any required down payment above the zero-down ceiling.</p>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="result-panel" id="partial-results">
+          <span class="eyebrow">Results</span>
+          <h3>Entitlement breakdown</h3>
+
+          <div class="result-row">
+            <span class="result-label">Maximum potential guaranty</span>
+            <span class="result-value" id="r-guaranty">$208,188</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">Entitlement already used</span>
+            <span class="result-value" id="r-used">$0</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">Remaining entitlement</span>
+            <span class="result-value" id="r-remaining">$208,188</span>
+          </div>
+          <div class="result-row headline">
+            <span class="result-label">Max zero-down loan</span>
+            <span class="result-value" id="r-maxloan">$832,750</span>
+          </div>
+          <div class="result-row warning" id="r-dp-row" style="display: none;">
+            <span class="result-label">Down payment required</span>
+            <span class="result-value" id="r-dp">$0</span>
+          </div>
+        </div>
+
+        <div class="result-panel" id="full-results" style="display: none;">
+          <span class="eyebrow">Full entitlement</span>
+          <h3>No loan limit applies</h3>
+          <p style="font-size: 15px; color: var(--charcoal-200); line-height: 1.65;">With full entitlement, no county cap applies. VA guarantees 25% of whatever loan amount the lender approves; zero down is available at any price point. Borrower ceiling is set by income, credit, and DTI — not entitlement math.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="math-notes">
+      <h4>The math</h4>
+      <ol class="math-list">
+        <li>Max potential guaranty <span class="formula">= county limit × 25%</span></li>
+        <li>Remaining entitlement <span class="formula">= max guaranty − entitlement charged</span></li>
+        <li>Zero-down loan ceiling <span class="formula">= remaining entitlement × 4</span></li>
+        <li>Required down payment <span class="formula">= (purchase price − zero-down ceiling) × 25%</span> when price exceeds the ceiling, otherwise $0.</li>
+      </ol>
+    </div>
+
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <h4>The Desk</h4>
+        <p>A working toolkit for loan originators. Curated by Charles Bacigalupi III, NMLS #1909129, at Barrett Financial Group, LLC, NMLS #181106.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Categories</h5>
+        <ul>
+          <li><a href="index.html#tools">VA Loans</a></li>
+          <li><a href="index.html#tools">Income Analysis</a></li>
+          <li><a href="index.html#tools">Qualifying &amp; DTI</a></li>
+          <li><a href="index.html#tools">Refinance</a></li>
+          <li><a href="index.html#reference">Reference Tables</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://www.charlesbacigalupi.com">checkwithchuck.com</a></li>
+          <li><a href="https://www.linkedin.com/in/charles-bacigalupi-iii/">LinkedIn</a></li>
+          <li><a href="https://www.barrettfinancial.com">Barrett Financial</a></li>
+          <li><a href="mailto:charlesb@barrettfinancial.com">Email Chuck</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-compliance">
+      <p><strong style="color: var(--bone);">For licensed mortgage professionals.</strong> The Desk is an educational toolkit. Calculators are estimates only and do not constitute a loan approval, commitment to lend, or a substitute for a Loan Estimate. Use your AUS findings and program guidelines as authoritative.</p>
+      <p>Charles Peter Bacigalupi III · Mortgage Loan Originator · NMLS #1909129. Powered by Barrett Financial Group, LLC · NMLS #181106 · 2701 East Insight Way, Suite 150, Chandler, AZ 85286. Licensed in AZ, CO, CA, TX, FL, WA, NJ. Equal Housing Opportunity.</p>
+      <p class="small">© <span id="year">2026</span> The Desk · checkwithchuck.com</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  const fmt = (n) => '$' + Math.round(n).toLocaleString('en-US');
+  const $ = (id) => document.getElementById(id);
+
+  function calc() {
+    const limit = parseFloat($('county-limit').value) || 0;
+    const charged = parseFloat($('entitlement-charged').value) || 0;
+    const price = parseFloat($('purchase-price').value) || 0;
+
+    const maxGuaranty = limit * 0.25;
+    const remaining = Math.max(0, maxGuaranty - charged);
+    const maxLoan = remaining * 4;
+
+    $('r-guaranty').textContent = fmt(maxGuaranty);
+    $('r-used').textContent = fmt(charged);
+    $('r-remaining').textContent = fmt(remaining);
+    $('r-maxloan').textContent = fmt(maxLoan);
+
+    const dpRow = $('r-dp-row');
+    if (price > 0) {
+      const dp = price > maxLoan ? 0.25 * (price - maxLoan) : 0;
+      $('r-dp').textContent = fmt(dp);
+      dpRow.style.display = 'flex';
+    } else {
+      dpRow.style.display = 'none';
+    }
+  }
+
+  ['county-limit', 'entitlement-charged', 'purchase-price'].forEach(id => {
+    $(id).addEventListener('input', calc);
+  });
+
+  document.querySelectorAll('.preset').forEach(btn => {
+    btn.addEventListener('click', () => {
+      $('county-limit').value = btn.dataset.limit;
+      calc();
+    });
+  });
+
+  $('btn-partial').addEventListener('click', () => {
+    $('btn-partial').classList.add('active');
+    $('btn-full').classList.remove('active');
+    $('partial-inputs').style.display = 'block';
+    $('partial-results').style.display = 'block';
+    $('full-results').style.display = 'none';
+  });
+
+  $('btn-full').addEventListener('click', () => {
+    $('btn-full').classList.add('active');
+    $('btn-partial').classList.remove('active');
+    $('partial-inputs').style.display = 'none';
+    $('partial-results').style.display = 'none';
+    $('full-results').style.display = 'block';
+  });
+
+  calc();
+</script>
+
+</body>
+</html>

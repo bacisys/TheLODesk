@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VA IRRRL Recoupment &amp; Net Tangible Benefit Calculator · The Desk</title>
+<meta name="description" content="Pro-grade VA IRRRL calculator: 36-month statutory recoupment, net tangible benefit rate tests (0.5% fixed-to-fixed, 2% fixed-to-ARM), seasoning, and the discount-point LTV cap. Built for loan originators." />
+<meta name="robots" content="index, follow" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,ital,wght@9..144,0,300;9..144,0,400;9..144,0,500;9..144,1,300;9..144,1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="desk.css">
+
+<style>
+  /* Scoped additions for the IRRRL tool — palette tokens inherited from desk.css */
+  /* selects inherit base styling from desk.css; add a custom caret + suffix support */
+  .calc-input select {
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23aab0bc' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 16px center;
+    padding-right: 38px;
+  }
+  .calc-input input[type="date"] {
+    width: 100%; padding: 13px 16px; border: 1px solid var(--line-strong);
+    border-radius: 6px; background: var(--charcoal-900);
+    font-family: var(--body); font-size: 16px; color: var(--bone);
+  }
+  .calc-input input[type="date"]:focus { outline: none; border-color: var(--warm); box-shadow: 0 0 0 3px var(--warm-soft); }
+  .calc-input input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7); cursor: pointer; }
+
+  .input-wrap.with-suffix::after {
+    content: attr(data-suffix);
+    position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+    font-family: var(--body); font-size: 14px; color: var(--charcoal-300); pointer-events: none;
+  }
+  .input-wrap.with-suffix input { padding-right: 46px; }
+
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 520px) { .field-row { grid-template-columns: 1fr; } }
+
+  .check-toggle { display: flex; align-items: flex-start; gap: 10px; margin: 4px 0 18px; }
+  .check-toggle input { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--warm); }
+  .check-toggle label { font-size: 14px; color: var(--charcoal-200); line-height: 1.5; cursor: pointer; }
+
+  .subhead {
+    font-family: var(--body); font-size: 12px; font-weight: 600;
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--warm);
+    margin: 28px 0 14px; padding-top: 22px; border-top: 1px solid var(--line);
+  }
+  .subhead:first-of-type { border-top: none; padding-top: 0; margin-top: 8px; }
+
+  .checks { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
+  .check {
+    display: grid; grid-template-columns: 1fr auto; gap: 6px 14px;
+    align-items: center; padding: 14px 16px; border-radius: 10px;
+    background: var(--charcoal-800); border: 1px solid var(--line);
+  }
+  .check .c-name { font-size: 14px; font-weight: 500; color: var(--bone); }
+  .check .c-detail { grid-column: 1 / -1; font-size: 13px; color: var(--charcoal-300); line-height: 1.5; }
+  .pill {
+    justify-self: end; font-family: var(--body); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; padding: 5px 11px; border-radius: 999px; white-space: nowrap;
+  }
+  .pill-pass { background: var(--positive-soft); color: var(--positive); }
+  .pill-fail { background: var(--caution-soft); color: var(--caution); }
+  .pill-info { background: rgba(201,144,90,0.14); color: var(--warm-bright); }
+  .pill-na   { background: var(--charcoal-700); color: var(--charcoal-300); }
+  .check.is-pass { border-color: var(--positive-soft); }
+  .check.is-fail { border-color: var(--caution-soft); }
+
+  .verdict {
+    margin-top: 18px; padding: 18px 20px; border-radius: 12px; text-align: center;
+    font-family: var(--display); font-size: 19px; line-height: 1.4;
+  }
+  .verdict-pass { background: var(--positive-soft); color: var(--positive); border: 1px solid var(--positive); }
+  .verdict-fail { background: var(--caution-soft); color: var(--caution); border: 1px solid var(--caution); }
+  .verdict .v-sub { display: block; font-family: var(--body); font-size: 13px; font-weight: 400; margin-top: 6px; color: var(--charcoal-200); }
+</style>
+</head>
+<body>
+
+<!-- Top compliance banner -->
+<div class="top-banner">
+  <div class="container">
+    <div class="badges">
+      <span class="badge"><span class="eho-icon"></span> Equal Housing Opportunity</span>
+      <span class="badge">NMLS #1909129</span>
+      <span class="badge">Barrett Financial Group · NMLS #181106</span>
+    </div>
+    <div>For licensed mortgage professionals · Educational use</div>
+  </div>
+</div>
+
+<!-- Nav -->
+<header class="nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="brand">
+      <div class="brand-mark">D</div>
+      <div class="brand-text">
+        <div class="brand-name">The Desk</div>
+        <div class="brand-sub">By Check with Chuck</div>
+      </div>
+    </a>
+    <nav class="nav-links">
+      <a href="index.html#tools">Tools</a>
+      <a href="index.html#reference">Reference</a>
+      <a href="index.html#scenarios">Scenarios</a>
+      <a href="index.html#about">About</a>
+    </nav>
+    <a href="https://www.charlesbacigalupi.com" class="nav-back">← checkwithchuck.com</a>
+  </div>
+</header>
+
+<!-- Tool page -->
+<section class="tool-page">
+  <div class="container">
+
+    <div class="tool-page-head">
+      <div class="breadcrumb"><a href="index.html">The Desk</a> · VA Loans · <span style="color: var(--bone);">IRRRL Recoupment &amp; NTB</span></div>
+      <h1>VA IRRRL <em>Recoupment &amp; Net Tangible Benefit</em></h1>
+      <p class="tool-lede">The three pass/fail gates VA applies to every IRRRL: the <strong style="color:var(--bone);">net tangible benefit</strong> rate test, the <strong style="color:var(--bone);">36-month recoupment</strong> of fees, and <strong style="color:var(--bone);">seasoning</strong>. Computes both the statutory recoupment (the test VA actually grades) and the all-in comparison-statement number the borrower sees — side by side.</p>
+    </div>
+
+    <div class="calc-grid">
+      <div class="calc-input">
+        <h3>Inputs</h3>
+        <p class="calc-sub">Figures from the current note, the new lock, and the fee worksheet.</p>
+
+        <div class="subhead">Current loan</div>
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label" for="cur-pi">Current monthly P&amp;I</label>
+            <div class="input-wrap with-prefix" data-prefix="$">
+              <input type="number" id="cur-pi" value="2398" step="1" min="0">
+            </div>
+            <p class="field-hint">Principal &amp; interest only — exclude taxes, insurance, and escrow.</p>
+          </div>
+          <div class="field">
+            <label class="field-label" for="cur-rate">Current rate</label>
+            <div class="input-wrap with-suffix" data-suffix="%">
+              <input type="number" id="cur-rate" value="6.750" step="0.001" min="0">
+            </div>
+            <p class="field-hint">Note rate on the loan being refinanced.</p>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="cur-type">Current rate structure</label>
+          <select id="cur-type">
+            <option value="fixed" selected>Fixed</option>
+            <option value="arm">ARM</option>
+          </select>
+        </div>
+
+        <div class="subhead">New loan</div>
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label" for="payoff">Payoff / current balance</label>
+            <div class="input-wrap with-prefix" data-prefix="$">
+              <input type="number" id="payoff" value="360000" step="1000" min="0">
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="new-rate">New rate</label>
+            <div class="input-wrap with-suffix" data-suffix="%">
+              <input type="number" id="new-rate" value="5.750" step="0.001" min="0">
+            </div>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label" for="new-type">New rate structure</label>
+            <select id="new-type">
+              <option value="fixed" selected>Fixed</option>
+              <option value="arm">ARM (use initial rate)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="new-term">New term</label>
+            <select id="new-term">
+              <option value="30" selected>30 years</option>
+              <option value="25">25 years</option>
+              <option value="20">20 years</option>
+              <option value="15">15 years</option>
+              <option value="10">10 years</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="subhead">Fees &amp; costs</div>
+        <div class="field">
+          <label class="field-label" for="costs-recoup">Recoupable fees &amp; closing costs</label>
+          <div class="input-wrap with-prefix" data-prefix="$">
+            <input type="number" id="costs-recoup" value="4200" step="100" min="0">
+          </div>
+          <p class="field-hint">Lender, title, recording, and other fees/closing costs. The bucket VA counts in the <em>statutory</em> recoupment test. Exclude taxes, escrow, and the funding fee here.</p>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label" for="points-count">Discount points</label>
+            <div class="input-wrap with-suffix" data-suffix="pts">
+              <input type="number" id="points-count" value="0" step="0.125" min="0">
+            </div>
+            <p class="field-hint">Number of points (drives the LTV cap rule).</p>
+          </div>
+          <div class="field">
+            <label class="field-label" for="points-cost">Discount point cost</label>
+            <div class="input-wrap with-prefix" data-prefix="$">
+              <input type="number" id="points-cost" value="0" step="100" min="0">
+            </div>
+            <p class="field-hint">Dollar cost — counted in recoupment.</p>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="prepaids">Prepaids, taxes &amp; escrow funding</label>
+          <div class="input-wrap with-prefix" data-prefix="$">
+            <input type="number" id="prepaids" value="3100" step="100" min="0">
+          </div>
+          <p class="field-hint">Excluded from the statutory test; included in the borrower comparison statement.</p>
+        </div>
+
+        <div class="check-toggle">
+          <input type="checkbox" id="ff-exempt">
+          <label for="ff-exempt">Borrower is <strong>exempt</strong> from the VA funding fee (e.g., service-connected disability). Otherwise the 0.5% IRRRL fee is applied.</label>
+        </div>
+        <div class="check-toggle">
+          <input type="checkbox" id="finance-costs" checked>
+          <label for="finance-costs">Finance fees, points, prepaids &amp; funding fee into the new loan amount.</label>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="appraised">Appraised value <span style="text-transform:none;letter-spacing:0;color:var(--charcoal-500);font-weight:400;">— optional, for points LTV cap</span></label>
+          <div class="input-wrap with-prefix" data-prefix="$">
+            <input type="number" id="appraised" value="0" step="1000" min="0">
+          </div>
+        </div>
+
+        <div class="subhead">Seasoning <span style="text-transform:none;letter-spacing:0;color:var(--charcoal-500);font-weight:400;">— optional</span></div>
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label" for="first-pmt">1st payment due (current loan)</label>
+            <input type="date" id="first-pmt">
+          </div>
+          <div class="field">
+            <label class="field-label" for="pmts-made">Payments made</label>
+            <div class="input-wrap with-suffix" data-suffix="mo">
+              <input type="number" id="pmts-made" value="0" step="1" min="0">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="result-panel">
+          <span class="eyebrow">Results</span>
+          <h3>Loan &amp; payment</h3>
+
+          <div class="result-row">
+            <span class="result-label">New loan amount</span>
+            <span class="result-value" id="r-newamt">$—</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">VA funding fee (0.5%)</span>
+            <span class="result-value" id="r-ff">$—</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">Current P&amp;I</span>
+            <span class="result-value" id="r-oldpi">$—</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">New P&amp;I</span>
+            <span class="result-value" id="r-newpi">$—</span>
+          </div>
+          <div class="result-row headline">
+            <span class="result-label">Monthly P&amp;I savings</span>
+            <span class="result-value" id="r-savings">$—</span>
+          </div>
+
+          <div class="verdict" id="verdict"></div>
+
+          <div class="checks" id="checks"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="math-notes">
+      <h4>The math &amp; the rule</h4>
+      <ol class="math-list">
+        <li>New P&amp;I <span class="formula">= amortize(new loan amount, new rate, new term)</span>. For a fixed-to-ARM, the new ARM's initial rate is used.</li>
+        <li>Net tangible benefit — rate test <span class="formula">fixed→fixed: new rate ≤ current − 0.50%</span>; <span class="formula">fixed→ARM: new rate ≤ current − 2.00%</span>. ARM→fixed qualifies on structure (stability), with recoupment/no-cost still required.</li>
+        <li>Statutory recoupment <span class="formula">= (recoupable fees + points cost) ÷ monthly P&amp;I savings</span> — must be ≤ 36 months. Taxes, escrow, and the VA funding fee are <em>excluded</em> from this numerator.</li>
+        <li>Comparison-statement recoupment <span class="formula">= (all fees incl. taxes, escrow &amp; funding fee) ÷ monthly P&amp;I savings</span> — the borrower-facing figure; informational.</li>
+        <li>Discount-point LTV cap <span class="formula">≤ 1 point → LTV ≤ 100%; &gt; 1 point → LTV ≤ 90%</span> (new loan amount ÷ appraised value).</li>
+        <li>Seasoning <span class="formula">≥ 210 days from 1st payment due AND ≥ 6 monthly payments made</span>.</li>
+        <li>If P&amp;I does not decrease (e.g., ARM→fixed or term reduction), recoupment can't be met — the IRRRL must be structured with <em>no</em> fees, closing costs, or expenses other than taxes, escrow, and the funding fee.</li>
+      </ol>
+      <p style="font-size:13px;color:var(--charcoal-300);line-height:1.6;margin-top:18px;">
+        Basis: 38 U.S.C. § 3709 and VA Circular 26-19-22 (Change 1). This tool estimates the statutory tests; your investor's comparison statement, AUS findings, and any overlays are authoritative. Recoupment timing references the statutory framework — confirm the lender's reference point (loan issuance vs. first payment due date) per current guidance.
+      </p>
+    </div>
+
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <h4>The Desk</h4>
+        <p>A working toolkit for loan originators. Curated by Charles Bacigalupi III, NMLS #1909129, at Barrett Financial Group, LLC, NMLS #181106.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Categories</h5>
+        <ul>
+          <li><a href="index.html#tools">VA Loans</a></li>
+          <li><a href="index.html#tools">Income Analysis</a></li>
+          <li><a href="index.html#tools">Qualifying &amp; DTI</a></li>
+          <li><a href="index.html#tools">Refinance</a></li>
+          <li><a href="index.html#reference">Reference Tables</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://www.charlesbacigalupi.com">checkwithchuck.com</a></li>
+          <li><a href="https://www.linkedin.com/in/charles-bacigalupi-iii/">LinkedIn</a></li>
+          <li><a href="https://www.barrettfinancial.com">Barrett Financial</a></li>
+          <li><a href="mailto:charlesb@barrettfinancial.com">Email Chuck</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-compliance">
+      <p><strong style="color: var(--bone);">For licensed mortgage professionals.</strong> The Desk is an educational toolkit. Calculators are estimates only and do not constitute a loan approval, commitment to lend, or a substitute for a Loan Estimate. Use your AUS findings and program guidelines as authoritative.</p>
+      <p>Charles Peter Bacigalupi III · Mortgage Loan Originator · NMLS #1909129. Powered by Barrett Financial Group, LLC · NMLS #181106 · 2701 East Insight Way, Suite 150, Chandler, AZ 85286. Licensed in AZ, CO, CA, TX, FL, WA, NJ. Equal Housing Opportunity.</p>
+      <p class="small">© <span id="year">2026</span> The Desk · checkwithchuck.com</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  const fmt  = (n) => '$' + Math.round(n).toLocaleString('en-US');
+  const fmt2 = (n) => n.toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1});
+  const $ = (id) => document.getElementById(id);
+
+  const FUNDING_FEE_RATE = 0.005; // 0.5% IRRRL funding fee
+
+  function pmt(principal, annualRatePct, termMonths) {
+    const r = (annualRatePct / 100) / 12;
+    if (principal <= 0 || termMonths <= 0) return 0;
+    if (r === 0) return principal / termMonths;
+    return principal * r / (1 - Math.pow(1 + r, -termMonths));
+  }
+
+  const INPUTS = ['cur-pi','cur-rate','cur-type','payoff','new-rate','new-type','new-term',
+                  'costs-recoup','points-count','points-cost','prepaids','ff-exempt',
+                  'finance-costs','appraised','first-pmt','pmts-made'];
+
+  function calc() {
+    const curPI    = parseFloat($('cur-pi').value) || 0;
+    const curRate  = parseFloat($('cur-rate').value) || 0;
+    const curType  = $('cur-type').value;
+    const payoff   = parseFloat($('payoff').value) || 0;
+    const newRate  = parseFloat($('new-rate').value) || 0;
+    const newType  = $('new-type').value;
+    const termMo   = (parseFloat($('new-term').value) || 30) * 12;
+    const costs    = parseFloat($('costs-recoup').value) || 0;
+    const ptsCount = parseFloat($('points-count').value) || 0;
+    const ptsCost  = parseFloat($('points-cost').value) || 0;
+    const prepaids = parseFloat($('prepaids').value) || 0;
+    const ffExempt = $('ff-exempt').checked;
+    const finance  = $('finance-costs').checked;
+    const appraised= parseFloat($('appraised').value) || 0;
+    const firstPmt = $('first-pmt').value;
+    const pmtsMade = parseFloat($('pmts-made').value) || 0;
+
+    // Funding fee is a % of the loan amount; loan amount may include financed items.
+    // Resolve iteratively-free: base financed items first, then FF on the resulting amount.
+    const financedItems = finance ? (costs + ptsCost + prepaids) : 0;
+    const preFFamount = payoff + financedItems;
+    let fundingFee = ffExempt ? 0 : preFFamount * FUNDING_FEE_RATE;
+    const newAmount = finance ? (preFFamount + fundingFee) : payoff;
+
+    const newPI = pmt(newAmount, newRate, termMo);
+    const savings = curPI - newPI;
+
+    $('r-newamt').textContent = fmt(newAmount);
+    $('r-ff').textContent = ffExempt ? 'Exempt' : fmt(fundingFee);
+    $('r-oldpi').textContent = fmt(curPI);
+    $('r-newpi').textContent = fmt(newPI);
+    $('r-savings').textContent = (savings >= 0 ? '' : '−') + fmt(Math.abs(savings)) + '/mo';
+
+    const checks = [];
+
+    /* 1 — Net tangible benefit (rate test) */
+    let ntbPass, ntbDetail;
+    if (curType === 'fixed' && newType === 'fixed') {
+      const need = curRate - 0.5;
+      ntbPass = newRate <= need + 1e-9;
+      ntbDetail = `Fixed→Fixed needs ≥ 0.50% reduction. New ${fmt2(newRate)}% vs. required ≤ ${fmt2(need)}% (current ${fmt2(curRate)}%).`;
+    } else if (curType === 'fixed' && newType === 'arm') {
+      const need = curRate - 2.0;
+      ntbPass = newRate <= need + 1e-9;
+      ntbDetail = `Fixed→ARM needs ≥ 2.00% reduction. New ${fmt2(newRate)}% vs. required ≤ ${fmt2(need)}% (current ${fmt2(curRate)}%).`;
+    } else if (curType === 'arm' && newType === 'fixed') {
+      ntbPass = true;
+      ntbDetail = 'ARM→Fixed qualifies on structure (rate stability). Recoupment / no-cost rules still apply.';
+    } else { // arm -> arm
+      ntbPass = newRate < curRate;
+      ntbDetail = `ARM→ARM: a rate reduction is required. New ${fmt2(newRate)}% vs. current ${fmt2(curRate)}%. Confirm the exact threshold with your investor.`;
+    }
+    checks.push({ name: 'Net tangible benefit (rate)', pass: ntbPass, detail: ntbDetail });
+
+    /* 2 — Statutory 36-month recoupment */
+    const statNumer = costs + ptsCost; // excludes taxes/escrow/prepaids and funding fee
+    if (savings > 0) {
+      const months = statNumer / savings;
+      const pass = months <= 36 + 1e-9;
+      checks.push({
+        name: 'Statutory 36-mo recoupment',
+        pass,
+        detail: `${fmt(statNumer)} recoupable ÷ ${fmt(savings)}/mo = ${fmt2(months)} months (≤ 36 required). Funding fee, taxes &amp; escrow excluded.`
+      });
+    } else {
+      checks.push({
+        name: 'Statutory 36-mo recoupment',
+        pass: statNumer <= 0,
+        detail: statNumer <= 0
+          ? 'No P&amp;I decrease, but no recoupable fees charged — eligible as a no-cost IRRRL (taxes, escrow &amp; funding fee may still be financed).'
+          : 'P&amp;I does not decrease, so fees cannot be recouped. This IRRRL must be structured with no fees/costs other than taxes, escrow &amp; funding fee.'
+      });
+    }
+
+    /* 3 — Comparison-statement recoupment (informational) */
+    const compNumer = costs + ptsCost + prepaids + fundingFee;
+    if (savings > 0) {
+      const cmonths = compNumer / savings;
+      checks.push({
+        name: 'Comparison statement (all-in)',
+        info: true,
+        detail: `Borrower-facing: ${fmt(compNumer)} all costs ÷ ${fmt(savings)}/mo = ${fmt2(cmonths)} months. If &gt; 36, the statutory calc above governs eligibility.`
+      });
+    } else {
+      checks.push({ name: 'Comparison statement (all-in)', info: true, detail: 'Not applicable without a payment reduction.' });
+    }
+
+    /* 4 — Discount-point LTV cap */
+    if (ptsCount > 0 && appraised > 0) {
+      const ltv = newAmount / appraised * 100;
+      const cap = ptsCount <= 1 ? 100 : 90;
+      const pass = ltv <= cap + 1e-9;
+      checks.push({
+        name: 'Discount-point LTV cap',
+        pass,
+        detail: `${fmt2(ptsCount)} pts → LTV must be ≤ ${cap}%. Resulting LTV ${fmt2(ltv)}% (${fmt(newAmount)} ÷ ${fmt(appraised)}).`
+      });
+    } else if (ptsCount > 0) {
+      checks.push({ name: 'Discount-point LTV cap', na: true, detail: `${fmt2(ptsCount)} pts financed — enter an appraised value to test the ${ptsCount <= 1 ? '100%' : '90%'} LTV cap.` });
+    }
+
+    /* 5 — Seasoning */
+    if (firstPmt) {
+      const days = Math.floor((Date.now() - new Date(firstPmt + 'T00:00:00').getTime()) / 86400000);
+      const pass = days >= 210 && pmtsMade >= 6;
+      checks.push({
+        name: 'Seasoning',
+        pass,
+        detail: `${days} days since 1st payment (≥ 210) and ${pmtsMade} payments made (≥ 6). Note date must be on/after the later gate.`
+      });
+    } else {
+      checks.push({ name: 'Seasoning', na: true, detail: 'Enter the current loan\u2019s first payment date and payments made to test 210 days + 6 payments.' });
+    }
+
+    render(checks);
+  }
+
+  function render(checks) {
+    const wrap = $('checks');
+    wrap.innerHTML = '';
+    let hardFail = false, hardPassable = true;
+
+    checks.forEach(c => {
+      let pillClass, pillText, rowClass = '';
+      if (c.info) { pillClass = 'pill-info'; pillText = 'Info'; }
+      else if (c.na) { pillClass = 'pill-na'; pillText = 'N/A'; }
+      else if (c.pass) { pillClass = 'pill-pass'; pillText = 'Pass'; rowClass = 'is-pass'; }
+      else { pillClass = 'pill-fail'; pillText = 'Fail'; rowClass = 'is-fail'; hardFail = true; }
+
+      const el = document.createElement('div');
+      el.className = 'check ' + rowClass;
+      el.innerHTML = `<span class="c-name">${c.name}</span>
+        <span class="pill ${pillClass}">${pillText}</span>
+        <span class="c-detail">${c.detail}</span>`;
+      wrap.appendChild(el);
+    });
+
+    const v = $('verdict');
+    if (hardFail) {
+      v.className = 'verdict verdict-fail';
+      v.innerHTML = 'Does not pass as structured<span class="v-sub">One or more statutory gates fail. Restructure (rate, costs, or no-cost) before relying on this scenario.</span>';
+    } else {
+      v.className = 'verdict verdict-pass';
+      v.innerHTML = 'Passes the statutory IRRRL gates<span class="v-sub">Subject to investor overlays, the comparison statement, and AUS/eligibility. Verify before locking.</span>';
+    }
+  }
+
+  INPUTS.forEach(id => {
+    const el = $(id);
+    el.addEventListener('input', calc);
+    el.addEventListener('change', calc);
+  });
+
+  calc();
+</script>
+
+</body>
+</html>
