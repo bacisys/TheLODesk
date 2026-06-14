@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Variable Income Averager · The Desk</title>
+<meta name="description" content="Program-aware variable income calculator for FHA, VA, Fannie Mae, Freddie Mac, and USDA. Averages bonus, overtime, commission, and tip income by each agency's methodology. Prints to one page for the loan file." />
+<meta name="robots" content="index, follow" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,ital,wght@9..144,0,300;9..144,0,400;9..144,0,500;9..144,1,300;9..144,1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="desk.css">
+
+<!-- Tool-specific component styles. Uses the shared class vocabulary
+     (.seg .subhead .line-row .verdict .flags .check-toggle .regime-tag)
+     so desk.css's global print stylesheet normalizes them for one-page print. -->
+<style>
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:26px;}
+.seg button{background:var(--charcoal-900);border:1px solid var(--line-strong);color:var(--charcoal-300);border-radius:8px;padding:11px 6px;font-size:13px;font-weight:500;transition:all .15s;}
+.seg button:hover{color:var(--bone);border-color:var(--warm);}
+.seg button.active{background:var(--warm);color:var(--charcoal-950);border-color:transparent;font-weight:600;}
+
+.prog-seg{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px;}
+.prog-seg button{background:var(--charcoal-900);border:1px solid var(--line-strong);color:var(--charcoal-300);border-radius:9px;padding:12px 6px;text-align:center;transition:all .15s;}
+.prog-seg button .pn{display:block;font-size:14px;font-weight:600;letter-spacing:.01em;}
+.prog-seg button .ps{display:block;font-size:10px;margin-top:3px;color:var(--charcoal-500);letter-spacing:.03em;}
+.prog-seg button:hover{color:var(--bone);border-color:var(--warm);}
+.prog-seg button:hover .ps{color:var(--charcoal-300);}
+.prog-seg button.active{background:var(--warm);color:var(--charcoal-950);border-color:transparent;}
+.prog-seg button.active .pn,.prog-seg button.active .ps{color:var(--charcoal-950);}
+.prog-seg button.active .ps{opacity:.72;}
+
+.prog-ctx{background:var(--charcoal-900);border:1px solid var(--line);border-left:3px solid var(--warm);border-radius:10px;padding:16px 20px;margin-bottom:44px;font-size:14px;line-height:1.55;color:var(--charcoal-200);}
+.prog-ctx b{color:var(--warm-bright);font-weight:600;}
+.prog-ctx .pc-cite{display:block;margin-top:8px;font-size:12px;color:var(--charcoal-500);letter-spacing:.02em;}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.cond{display:none;}
+.cond.show{display:block;}
+
+.subhead{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--warm);font-weight:500;margin:22px 0 10px;}
+
+.verdict{background:var(--warm-soft);border:1px solid var(--line-strong);border-radius:10px;padding:22px 20px;margin-bottom:6px;text-align:center;}
+.verdict .v-value{font-family:var(--display);font-size:40px;font-weight:400;color:var(--warm-bright);line-height:1;letter-spacing:-.01em;}
+.verdict .v-value.excluded{font-size:26px;color:var(--caution);}
+.verdict .v-sub{font-size:13px;color:var(--charcoal-200);margin-top:10px;line-height:1.5;}
+.verdict .regime-tag{color:var(--warm);font-weight:600;}
+.verdict-pass{background:var(--positive-soft);}
+.verdict-warn{background:var(--caution-soft);}
+.verdict-warn .v-value{color:var(--caution);}
+
+.line-row{display:flex;justify-content:space-between;align-items:baseline;padding:11px 0;border-bottom:1px dashed var(--line);gap:12px;}
+.line-row:last-child{border-bottom:none;}
+.line-label{font-size:13px;color:var(--charcoal-200);}
+.line-label small{display:block;font-size:11px;color:var(--charcoal-500);margin-top:2px;}
+.line-value{font-family:var(--display);font-size:18px;color:var(--bone);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.line-row.used .line-value{color:var(--warm-bright);}
+.line-row.used .line-label{color:var(--bone);}
+
+.flags{display:flex;flex-direction:column;gap:10px;margin-top:24px;}
+.flag{padding:13px 15px;border-radius:9px;font-size:13px;line-height:1.5;border:1px solid var(--line);background:var(--charcoal-900);border-left:3px solid var(--charcoal-600);}
+.flag.info{border-left-color:var(--warm);}
+.flag.warn{border-left-color:var(--caution);}
+.flag.stop{border-left-color:var(--caution);background:var(--caution-soft);}
+.flag b{color:var(--bone);font-weight:600;}
+
+.check-toggle{display:flex;align-items:flex-start;gap:10px;background:var(--charcoal-900);border:1px solid var(--line-strong);border-radius:8px;padding:13px 15px;cursor:pointer;}
+.check-toggle input{margin-top:2px;accent-color:var(--warm);width:16px;height:16px;flex:none;}
+.check-toggle label{font-size:13px;line-height:1.45;color:var(--charcoal-200);cursor:pointer;}
+.check-toggle b{color:var(--bone);}
+
+.cmp{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;}
+.cmp th,.cmp td{text-align:left;padding:11px 16px 11px 0;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.5;}
+.cmp th{color:var(--warm);font-size:11px;text-transform:uppercase;letter-spacing:.07em;font-weight:600;}
+.cmp td:first-child{color:var(--bone);font-weight:600;white-space:nowrap;padding-right:22px;}
+.cmp td{color:var(--charcoal-200);}
+</style>
+</head>
+<body>
+
+<!-- Top compliance banner -->
+<div class="top-banner">
+  <div class="container">
+    <div class="badges">
+      <span class="badge"><span class="eho-icon"></span> Equal Housing Opportunity</span>
+      <span class="badge">NMLS #1909129</span>
+      <span class="badge">Barrett Financial Group · NMLS #181106</span>
+    </div>
+    <div>For licensed mortgage professionals · Educational use</div>
+  </div>
+</div>
+
+<!-- Nav -->
+<header class="nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="brand">
+      <div class="brand-mark">D</div>
+      <div class="brand-text">
+        <div class="brand-name">The Desk</div>
+        <div class="brand-sub">By Check with Chuck</div>
+      </div>
+    </a>
+    <nav class="nav-links">
+      <a href="index.html#tools">Tools</a>
+      <a href="index.html#reference">Reference</a>
+      <a href="index.html#scenarios">Scenarios</a>
+      <a href="index.html#about">About</a>
+    </nav>
+    <a href="https://www.charlesbacigalupi.com" class="nav-back">← checkwithchuck.com</a>
+  </div>
+</header>
+
+<section class="tool-page">
+  <div class="container">
+
+    <!-- Print-only header (stamped for the loan file) -->
+    <div class="print-header print-only">
+      <div class="ph-left">
+        <span class="ph-mark">D</span>
+        <div>
+          <div class="ph-name">The Desk</div>
+          <div class="ph-sub">By Check with Chuck</div>
+        </div>
+      </div>
+      <div class="ph-meta">
+        <div class="ph-tool" id="ph-tool">Variable Income Averager · Fannie Mae</div>
+        <div class="ph-file" id="ph-file"></div>
+        <div class="ph-date" id="ph-date"></div>
+      </div>
+    </div>
+
+    <div class="tool-page-head">
+      <div class="breadcrumb"><a href="index.html">The Desk</a> · Income Analysis · Variable Income Averager</div>
+      <h1>Variable Income <em>Averager</em></h1>
+      <p class="tool-lede">Bonus, overtime, commission, and tip income calculated by each agency's own rulebook. Pick the program and the math, the history test, and the trend logic all change to match — the same way a self-employment analyzer branches by entity.</p>
+    </div>
+
+    <!-- Program selector (screen only) -->
+    <div class="prog-select no-print">
+      <div class="prog-seg" id="prog-seg">
+        <button data-prog="fannie" class="active"><span class="pn">Fannie</span><span class="ps">B3-3.3-02</span></button>
+        <button data-prog="freddie"><span class="pn">Freddie</span><span class="ps">5303.4</span></button>
+        <button data-prog="fha"><span class="pn">FHA</span><span class="ps">4000.1</span></button>
+        <button data-prog="va"><span class="pn">VA</span><span class="ps">Ch. 4</span></button>
+        <button data-prog="usda"><span class="pn">USDA</span><span class="ps">HB-1-3555</span></button>
+      </div>
+    </div>
+    <div class="prog-ctx no-print" id="prog-ctx"></div>
+
+    <div class="calc-grid">
+      <!-- INPUTS -->
+      <div class="calc-input">
+        <h3>Income</h3>
+        <p class="calc-sub">Enter gross variable earnings by period. The calculation re-routes to the selected program.</p>
+
+        <div class="seg" id="type-seg">
+          <button data-type="overtime" class="active">Overtime</button>
+          <button data-type="bonus">Bonus</button>
+          <button data-type="commission">Commission</button>
+          <button data-type="tips">Tips</button>
+        </div>
+
+        <div class="field">
+          <label class="field-label">Prior Year 2 — oldest full year</label>
+          <div class="input-wrap with-prefix" data-prefix="$"><input type="number" id="py2" placeholder="0" inputmode="decimal" /></div>
+          <div class="field-hint">Earliest complete year (e.g. 2024) from the W-2 / VOE.</div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">Prior Year 1 — most recent full year</label>
+          <div class="input-wrap with-prefix" data-prefix="$"><input type="number" id="py1" placeholder="0" inputmode="decimal" /></div>
+          <div class="field-hint">Most recently completed calendar year (e.g. 2025).</div>
+        </div>
+
+        <div class="two-col">
+          <div class="field">
+            <label class="field-label">Year-to-date</label>
+            <div class="input-wrap with-prefix" data-prefix="$"><input type="number" id="ytd" placeholder="0" inputmode="decimal" /></div>
+          </div>
+          <div class="field">
+            <label class="field-label">YTD months</label>
+            <div class="input-wrap"><input type="number" id="ytdm" placeholder="0" min="0" max="12" step="0.5" inputmode="decimal" /></div>
+          </div>
+        </div>
+        <div class="field-hint" style="margin-top:-10px;margin-bottom:22px;">Months elapsed through the paystub date — e.g. 5 for an end-of-May stub.</div>
+
+        <div class="field cond" id="base-field">
+          <label class="field-label">Monthly base / other income</label>
+          <div class="input-wrap with-prefix" data-prefix="$"><input type="number" id="base" placeholder="0" inputmode="decimal" /></div>
+          <div class="field-hint">Drives the FHA 25%-of-total-income commission test.</div>
+        </div>
+
+        <div class="field cond" id="exp-field">
+          <label class="field-label">Unreimbursed business expenses — annual</label>
+          <div class="input-wrap with-prefix" data-prefix="$"><input type="number" id="exp" placeholder="0" inputmode="decimal" /></div>
+          <div class="field-hint">FHA nets these out of gross commission when commission exceeds 25% of total income.</div>
+        </div>
+
+        <div class="cond" id="stab-field">
+          <div class="check-toggle">
+            <input type="checkbox" id="stab" />
+            <label for="stab">Income has <b>stabilized</b> after the decline, and it's documented. Fannie requires this confirmation before declining variable income can be used at all.</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- RESULTS -->
+      <div class="result-panel">
+        <span class="eyebrow">Qualifying Result</span>
+        <h3>Monthly income</h3>
+
+        <div class="verdict" id="verdict">
+          <div class="v-value" id="r-qual">$0</div>
+          <div class="v-sub" id="r-sub">Enter figures to calculate.</div>
+        </div>
+
+        <div class="subhead">Figures considered</div>
+        <div id="breakdown"></div>
+
+        <div class="flags" id="flags"></div>
+
+        <button class="print-btn no-print" id="print-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Print / Save PDF
+        </button>
+      </div>
+    </div>
+
+    <!-- Methodology reference (screen only; hidden in print) -->
+    <div class="math-notes">
+      <h4>The five programs, side by side</h4>
+      <table class="cmp">
+        <thead><tr><th>Program</th><th>History</th><th>Qualifying calculation</th><th>Declining income</th></tr></thead>
+        <tbody>
+          <tr><td>Fannie Mae</td><td>24 mo (12 mo with offsets)</td><td>Stable/rising: (prior yr + YTD) ÷ months, min 12</td><td>Must confirm stabilized, else <b>ineligible</b>; then YTD ÷ months since stabilizing</td></tr>
+          <tr><td>Freddie Mac</td><td>24 mo + YTD; 3-yr continuance</td><td>Keyed to fluctuation: ≤10% leans on YTD; &gt;10% analyze; &gt;30% extra docs</td><td>Verify the reason; support the amount used</td></tr>
+          <tr><td>FHA</td><td>24 mo (12 mo w/ docs)</td><td><b>Lesser of</b> the 2-yr average and the most-recent-yr average</td><td>Handled automatically — the lower recent year wins the lesser-of</td></tr>
+          <tr><td>VA</td><td>24 mo</td><td>Straight 24-month average</td><td>Underwriter judgment: count the lower year or exclude on borderline files</td></tr>
+          <tr><td>USDA</td><td>~12 mo same line of work</td><td>Repayment: conservative average. <b>Annual</b> household income is a separate eligibility calc</td><td>Declining wages carefully reviewed; use the lower</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Print-only compliance footer -->
+    <div class="print-foot print-only">
+      <strong>The Desk · Variable Income Averager.</strong> Educational tool for licensed mortgage professionals. Output is an estimate, not an approval, a commitment to lend, or a guarantee of qualifying income. Final income determination rests with the underwriter and the applicable agency guideline. Charles Bacigalupi III, NMLS #1909129 · Barrett Financial Group, NMLS #181106. Equal Housing Opportunity.
+    </div>
+
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <h4>The Desk</h4>
+        <p>A working toolkit for loan originators. Curated by Charles Bacigalupi III, NMLS #1909129, at Barrett Financial Group, LLC, NMLS #181106.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Categories</h5>
+        <ul>
+          <li><a href="index.html#tools">VA Loans</a></li>
+          <li><a href="index.html#tools">Income Analysis</a></li>
+          <li><a href="index.html#tools">Qualifying &amp; DTI</a></li>
+          <li><a href="index.html#tools">Refinance</a></li>
+          <li><a href="index.html#reference">Reference Tables</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://www.charlesbacigalupi.com">checkwithchuck.com</a></li>
+          <li><a href="https://www.linkedin.com/in/charles-bacigalupi-iii/">LinkedIn</a></li>
+          <li><a href="https://www.barrettfinancial.com">Barrett Financial</a></li>
+          <li><a href="mailto:charlesb@barrettfinancial.com">Email Chuck</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-compliance">
+      <p><strong style="color: var(--bone);">For licensed mortgage professionals.</strong> The Desk is an educational toolkit. Calculators are estimates only and do not constitute a loan approval, commitment to lend, or a substitute for a Loan Estimate. Use your AUS findings and program guidelines as authoritative.</p>
+      <p>Charles Peter Bacigalupi III · Mortgage Loan Originator · NMLS #1909129. Powered by Barrett Financial Group, LLC · NMLS #181106 · 2701 East Insight Way, Suite 150, Chandler, AZ 85286. Licensed in AZ, CO, CA, TX, FL, WA, NJ. Equal Housing Opportunity.</p>
+      <p class="small">© <span id="year">2026</span> The Desk · checkwithchuck.com</p>
+    </div>
+  </div>
+</footer>
+
+<!-- Print details modal -->
+<div class="print-modal" id="print-modal">
+  <div class="print-modal-card">
+    <h4>Print / Save as PDF</h4>
+    <p>Stamp this analysis for the loan file. Both fields are optional.</p>
+    <label>Borrower name</label>
+    <input type="text" id="pm-borrower" placeholder="e.g. John &amp; Jane Smith" />
+    <label>File / loan number</label>
+    <input type="text" id="pm-file" placeholder="optional" />
+    <div class="print-modal-actions">
+      <button class="pm-cancel" id="pm-cancel">Cancel</button>
+      <button class="pm-go" id="pm-go">Print</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var PROG='fannie', TYPE='overtime';
+  var $=function(id){return document.getElementById(id);};
+  function num(id){var v=parseFloat($(id).value);return isNaN(v)||v<0?0:v;}
+  function money(n){return '$'+Math.round(n).toLocaleString('en-US');}
+  function pct(n){return (n>=0?'+':'')+(n*100).toFixed(1)+'%';}
+
+  var PROG_NAME={fannie:'Fannie Mae',freddie:'Freddie Mac',fha:'FHA',va:'VA',usda:'USDA'};
+  var PROG_CTX={
+    fannie:{m:'<b>Fannie Mae (DU).</b> Stable or increasing income averages the prior year plus YTD over the months included (minimum 12). Decreasing income must be confirmed stabilized — otherwise it cannot be used.',c:'Selling Guide B3-3.3-02, Bonus, Commission, Overtime, and Tip Income (eff. 03/04/2026)'},
+    freddie:{m:'<b>Freddie Mac (LPA).</b> Additional fluctuating earnings need a 2-year history plus YTD and 3-year continuance. The calc is keyed to the degree of fluctuation: at or under 10% you can lean on the higher YTD average; over 10% needs analysis; over 30% needs additional documentation.',c:'Single-Family Seller/Servicer Guide 5303.1 &amp; 5303.4'},
+    fha:{m:'<b>FHA.</b> Effective income is the <b>lesser</b> of the average over the previous two years and the average over the previous year. Commission over 25% of total income requires tax returns and nets out unreimbursed business expenses.',c:'HUD Handbook 4000.1, II.A.4.c.v'},
+    va:{m:'<b>VA.</b> A two-year history averaged over 24 months, stable and likely to continue. Declining income is a case-by-case judgment — count the lower year or exclude on borderline files, annotated in the loan analysis remarks.',c:'VA Lender&rsquo;s Handbook (Pamphlet 26-7), Chapter 4'},
+    usda:{m:'<b>USDA.</b> This computes <b>repayment</b> income (the DTI figure) — stable, dependable, ~1-year history. Remember the separate <b>annual household income</b> calc (all adult members, projected 12 months) governs eligibility against the county limit.',c:'HB-1-3555, Chapter 9: Income Analysis'}
+  };
+  var TYPE_NOTE={
+    overtime:'Overtime must be likely to continue and supported by history (program minimums vary).',
+    bonus:'Bonus income needs a documented history and continuance. An annual lump-sum bonus is annualized (÷12). Exclude one-time / signing bonuses.',
+    commission:'Commission history and documentation tighten as it grows as a share of total income. FHA splits at 25%.',
+    tips:'Tip income generally needs a 2-year history and tax-return or 4137 support. Unreported cash tips cannot be used.'
+  };
+
+  document.querySelectorAll('#prog-seg button').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('#prog-seg button').forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active');PROG=b.dataset.prog;syncFields();calc();
+    });
+  });
+  document.querySelectorAll('#type-seg button').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('#type-seg button').forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active');TYPE=b.dataset.type;syncFields();calc();
+    });
+  });
+  ['py2','py1','ytd','ytdm','base','exp'].forEach(function(id){$(id).addEventListener('input',calc);});
+  $('stab').addEventListener('change',calc);
+
+  function syncFields(){
+    var isComm=(TYPE==='commission');
+    $('base-field').classList.toggle('show',isComm);
+    $('exp-field').classList.toggle('show',isComm && PROG==='fha');
+  }
+
+  function calc(){
+    var ctx=PROG_CTX[PROG];
+    $('prog-ctx').innerHTML='<div>'+ctx.m+'</div><span class="pc-cite">'+ctx.c+'</span>';
+    $('ph-tool').textContent='Variable Income Averager · '+PROG_NAME[PROG];
+
+    var py2=num('py2'),py1=num('py1'),ytd=num('ytd'),ytdm=num('ytdm'),base=num('base'),exp=num('exp');
+    var fullYears=(py1>0?1:0)+(py2>0?1:0);
+    var hasYtd=ytd>0 && ytdm>0;
+    var py1m=py1>0?py1/12:0, ytdMonthly=hasYtd?ytd/ytdm:0;
+    var avg24=(py1+py2)/24;
+    var avg24ytd=(py1+py2+ytd)/(24+(hasYtd?ytdm:0));
+    var avg12ytd=(py1+ytd)/(12+(hasYtd?ytdm:0));
+    var prior2Monthly=avg24;
+    var fluct=(ytdMonthly>0 && prior2Monthly>0)?(ytdMonthly-prior2Monthly)/prior2Monthly:null;
+    var curVsPrior=(py1m>0 && hasYtd)?(ytdMonthly-py1m)/py1m:null;
+    var yoyFull=(py2>0 && py1>0)?(py1-py2)/py2:null;
+    var declining=(curVsPrior!==null && curVsPrior<-0.05)||(curVsPrior===null && yoyFull!==null && yoyFull<-0.05);
+    var rising=(curVsPrior!==null && curVsPrior>0.05)||(curVsPrior===null && yoyFull!==null && yoyFull>0.05);
+
+    $('stab-field').classList.toggle('show',PROG==='fannie' && declining);
+
+    var notes=[{c:'info',t:TYPE_NOTE[TYPE]}];
+
+    if(py1<=0 && py2<=0 && !hasYtd){ paint(0,'',[],notes,false,'','',null,null); return; }
+
+    var qual=0,method='',excluded=false,rows=[];
+    var trendStatus=declining?'down':(rising?'up':'flat');
+    var trendLabel=declining?'Declining':(rising?'Increasing':'Stable');
+
+    if(PROG==='fannie'){
+      if(declining){
+        if($('stab').checked){qual=ytdMonthly;method='YTD ÷ months since stabilization';}
+        else{qual=0;excluded=true;method='ineligible until stabilization confirmed';
+          notes.push({c:'stop',t:'<b>Decreasing income.</b> Fannie does not allow declining variable income unless you confirm and document that it has stabilized after the decline. Check the box once you can support that, or the income is excluded.'});}
+      }else{
+        qual=avg12ytd;method='(prior year + YTD) ÷ months, min 12';
+        if(rising)notes.push({c:'info',t:'<b>Rising trend.</b> Fannie averages the prior year and YTD rather than crediting the full current run-rate.'});
+      }
+      rows=[['(Prior yr + YTD) ÷ months','min 12',avg12ytd,!declining],
+            ['YTD monthly','current run-rate',ytdMonthly,declining && $('stab').checked],
+            ['Prior year monthly','PY1 ÷ 12',py1m,false]];
+      if(fullYears<1 && ytdm<12)notes.push({c:'warn',t:'<b>Under 12 months.</b> Fannie requires at least 12 months in the calculation; a sub-12-month history needs documented offsetting positives.'});
+    }
+    else if(PROG==='freddie'){
+      if(declining){qual=avg24ytd;method='2-yr + YTD average (conservative)';
+        notes.push({c:'warn',t:'<b>Declining.</b> Verify and document the reason for the decline; the file must support the amount used.'});}
+      else{
+        var f=fluct!==null?Math.abs(fluct):0;
+        if(f<=0.10){qual=avg12ytd;method='most recent yr + YTD (fluctuation ≤10%)';
+          notes.push({c:'info',t:'<b>Fluctuation within 10%.</b> Consistent enough to lean on the shorter, higher YTD-weighted average.'});}
+        else if(f<=0.30){qual=avg24ytd;method='2-yr + YTD average (fluctuation &gt;10%)';
+          notes.push({c:'warn',t:'<b>Fluctuation '+(fluct*100).toFixed(0)+'%.</b> Over 10% — additional analysis required to confirm stability before using the income.'});}
+        else{qual=avg24ytd;method='2-yr + YTD average (fluctuation &gt;30%)';
+          notes.push({c:'stop',t:'<b>Fluctuation '+(fluct*100).toFixed(0)+'%.</b> Over 30% — additional analysis and documentation are required to support the amount used.'});}
+      }
+      rows=[['2-yr + YTD average','(PY1+PY2+YTD) ÷ months',avg24ytd,method.indexOf('2-yr')>-1],
+            ['Most recent yr + YTD','(PY1+YTD) ÷ months',avg12ytd,method.indexOf('most recent')>-1],
+            ['Degree of fluctuation','YTD vs prior 2-yr',null,false,fluct!==null?pct(fluct):'—']];
+      notes.push({c:'info',t:'Continuance must be documented for at least 3 years.'});
+    }
+    else if(PROG==='fha'){
+      var twoYr=fullYears>=2?avg24ytd:avg12ytd, oneYr=avg12ytd;
+      qual=Math.min(twoYr,oneYr);method='lesser of 2-yr and 1-yr average';
+      rows=[['2-yr average','(or length if &lt;2 yr)',twoYr,qual===twoYr],
+            ['Most-recent-yr average','(PY1 + YTD)',oneYr,qual===oneYr && qual!==twoYr]];
+      if(TYPE==='commission' && base>0){
+        var totalMo=qual+base, share=totalMo>0?qual/totalMo:0;
+        if(share>=0.25){
+          var netMo=Math.max(0,qual-exp/12);
+          notes.push({c:'stop',t:'<b>Commission is '+(share*100).toFixed(0)+'% of total income (≥25%).</b> Two years of signed tax returns required; net commission = gross minus unreimbursed business expenses ('+money(exp)+'/yr → −'+money(exp/12)+'/mo).'});
+          qual=netMo;method='lesser-of, net of business expenses';
+          rows.push(['Net of business expenses','gross − expenses ÷ 12',netMo,true]);
+        }else{notes.push({c:'info',t:'Commission is '+(share*100).toFixed(0)+'% of total income (under 25%) — standard employment documentation; no tax-return analysis required.'});}
+      }else if(TYPE==='commission'){notes.push({c:'info',t:'Enter monthly base income to run the 25% test that decides tax-return vs. standard documentation.'});}
+      if(fullYears<2)notes.push({c:'warn',t:'<b>Under 2 years.</b> FHA allows a 1-year history if consistently earned and likely to continue, documented.'});
+    }
+    else if(PROG==='va'){
+      if(declining){qual=Math.min(avg24,ytdMonthly||avg24);method='lower of 24-mo avg / YTD (declining)';
+        notes.push({c:'warn',t:'<b>Declining.</b> VA leaves this to underwriter judgment — the lower figure is shown. On borderline files the income may be excluded entirely. Annotate the loan analysis remarks.'});}
+      else{qual=avg24;method='straight 24-month average';}
+      rows=[['24-month average','(PY1+PY2) ÷ 24',avg24,!declining],
+            ['YTD monthly','current run-rate',ytdMonthly,declining]];
+      if(fullYears<2)notes.push({c:'warn',t:'<b>Under 2 years.</b> '+(TYPE==='commission'?'Commission under 2 years needs at least 1 full year plus a background in the field; under 1 year is unlikely to be usable.':'A full 2-year history is the VA baseline; document any offsetting strengths.')});
+    }
+    else if(PROG==='usda'){
+      qual=fullYears>=2?avg24ytd:avg12ytd;
+      method=fullYears>=2?'repayment: 2-yr + YTD average':'repayment: 1-yr + YTD average';
+      if(declining){qual=Math.min(qual,ytdMonthly||qual);method='repayment: lower figure (declining)';
+        notes.push({c:'warn',t:'<b>Declining wages.</b> USDA requires careful review of declining repayment income; the lower figure is shown.'});}
+      rows=[['Repayment average',fullYears>=2?'(PY1+PY2+YTD) ÷ months':'(PY1+YTD) ÷ months',qual,true],
+            ['YTD monthly','current run-rate',ytdMonthly,false]];
+      notes.push({c:'stop',t:'<b>Two numbers, not one.</b> This is the repayment (DTI) figure. Annual household income — every adult member, projected forward 12 months — is a separate calc that determines eligibility against the county moderate-income limit.'});
+      if(fullYears<1 && ytdm<12)notes.push({c:'warn',t:'USDA looks for roughly one year in the same or similar line of work for variable repayment income.'});
+    }
+
+    paint(qual,method,rows,notes,excluded,trendStatus,trendLabel,curVsPrior,yoyFull);
+  }
+
+  function paint(qual,method,rows,notes,excluded,trendStatus,trendLabel,curVsPrior,yoyFull){
+    var vEl=$('verdict'), qEl=$('r-qual'), sEl=$('r-sub');
+    vEl.classList.remove('verdict-pass','verdict-warn');
+
+    if(!method){ qEl.textContent='$0';qEl.classList.remove('excluded');sEl.textContent='Enter figures to calculate.';
+      $('breakdown').innerHTML='';$('flags').innerHTML=notes.length?renderFlags(notes):'';return; }
+
+    if(excluded){qEl.textContent='Excluded';qEl.classList.add('excluded');vEl.classList.add('verdict-warn');}
+    else{qEl.textContent=money(qual);qEl.classList.remove('excluded');
+      vEl.classList.add((trendStatus==='down')?'verdict-warn':'verdict-pass');}
+
+    var delta=curVsPrior!=null?(' · '+pct(curVsPrior)+' vs prior yr'):(yoyFull!=null?(' · '+pct(yoyFull)+' YoY'):'');
+    var sub = excluded
+      ? '<span class="regime-tag">'+method+'</span>'
+      : money(qual*12)+' / yr · <span class="regime-tag">'+method+'</span><br>'+trendLabel+delta;
+    sEl.innerHTML=sub;
+
+    var bd='';
+    rows.forEach(function(r){
+      var label=r[0],sub2=r[1],val=r[2],used=r[3],ov=r[4];
+      var vtxt=ov!==undefined?ov:(val!=null?money(val):'—');
+      bd+='<div class="line-row'+(used?' used':'')+'"><span class="line-label">'+label+'<small>'+sub2+'</small></span><span class="line-value">'+vtxt+'</span></div>';
+    });
+    $('breakdown').innerHTML=bd;
+    $('flags').innerHTML=renderFlags(notes);
+  }
+
+  function renderFlags(notes){
+    return notes.map(function(n){return '<div class="flag '+n.c+'">'+n.t+'</div>';}).join('');
+  }
+
+  // ---- print
+  function openModal(){$('print-modal').classList.add('open');}
+  function closeModal(){$('print-modal').classList.remove('open');}
+  $('print-btn').addEventListener('click',openModal);
+  $('pm-cancel').addEventListener('click',closeModal);
+  $('print-modal').addEventListener('click',function(e){if(e.target===$('print-modal'))closeModal();});
+  $('pm-go').addEventListener('click',function(){
+    var b=$('pm-borrower').value.trim(), f=$('pm-file').value.trim();
+    var parts=[];
+    if(b)parts.push('Borrower: '+b);
+    if(f)parts.push('File #'+f);
+    $('ph-file').textContent=parts.join('  ·  ');
+    closeModal();
+    setTimeout(function(){window.print();},120);
+  });
+
+  var d=new Date();
+  $('ph-date').textContent='Prepared '+d.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});
+  $('year').textContent=d.getFullYear();
+
+  syncFields();calc();
+})();
+</script>
+</body>
+</html>
