@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Self-Employed Income Analyzer · The Desk</title>
+<meta name="description" content="Self-employed qualifying income from tax returns — Schedule C, Partnership (1065), S-Corp (1120S), and C-Corp (1120) — with Fannie Mae 1084 / Freddie Mac 91 add-backs and FHA / VA / Fannie / Freddie averaging logic. Built for loan originators." />
+<meta name="robots" content="index, follow" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,ital,wght@9..144,0,300;9..144,0,400;9..144,0,500;9..144,1,300;9..144,1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="desk.css">
+
+<style>
+  .calc-input select {
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23aab0bc' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 16px center; padding-right: 38px;
+  }
+  .seg { display: flex; gap: 6px; flex-wrap: wrap; }
+  .seg button {
+    flex: 1 1 0; min-width: 78px; padding: 11px 8px; border-radius: 10px; cursor: pointer;
+    background: var(--charcoal-800, #1b1d21); border: 1px solid var(--line); color: var(--charcoal-200);
+    font-family: var(--body); font-size: 14px; font-weight: 500; transition: all .15s;
+  }
+  .seg button.active { background: var(--warm); border-color: var(--warm-bright); color: var(--bone); }
+
+  .subhead {
+    font-family: var(--body); font-size: 12px; font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--warm); margin: 26px 0 8px; padding-top: 20px; border-top: 1px solid var(--line);
+  }
+  .subhead.tight { margin-top: 18px; padding-top: 16px; }
+  .subhead:first-of-type { border-top: none; padding-top: 0; margin-top: 6px; }
+
+  .year-head, .line-row { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 8px 12px; align-items: center; }
+  .year-head { margin-bottom: 6px; }
+  .year-head .yh-label { font-size: 12px; color: var(--charcoal-300); }
+  .line-row { padding: 5px 0; }
+  .line-row .line-label { font-size: 13.5px; color: var(--charcoal-200); line-height: 1.35; }
+  .line-row .line-label small { display: block; color: var(--charcoal-400); font-size: 11.5px; }
+  .line-row input { width: 100%; }
+  .seg.own { margin-top: 4px; }
+  @media (max-width: 560px) {
+    .year-head, .line-row { grid-template-columns: 1fr 1fr; }
+    .line-row .line-label, .year-head .yh-label { grid-column: 1 / -1; }
+  }
+
+  .mini-input { padding: 9px 12px; border-radius: 9px; background: var(--charcoal-800,#1b1d21); border: 1px solid var(--line); color: var(--bone); font-family: var(--body); font-size: 14px; }
+  .mini-input:focus { outline: none; border-color: var(--warm-bright); }
+
+  .check-toggle { display: flex; align-items: flex-start; gap: 10px; margin: 16px 0 2px; }
+  .check-toggle input { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--warm); }
+  .check-toggle label { font-size: 13.5px; color: var(--charcoal-200); line-height: 1.5; cursor: pointer; }
+
+  .verdict { margin: 18px 0 8px; padding: 18px 20px; border-radius: 12px; text-align: center; font-family: var(--display); font-size: 22px; line-height: 1.35; }
+  .verdict-pass { background: var(--positive-soft); color: var(--positive); border: 1px solid var(--positive); }
+  .verdict-warn { background: var(--caution-soft); color: var(--caution); border: 1px solid var(--caution); }
+  .verdict .v-sub { display: block; font-family: var(--body); font-size: 13px; font-weight: 400; margin-top: 6px; color: var(--charcoal-200); }
+
+  .flags { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .flag { font-size: 12.5px; line-height: 1.5; padding: 10px 12px; border-radius: 9px; border: 1px solid var(--line); background: var(--charcoal-800,#1b1d21); color: var(--charcoal-200); }
+  .flag b { color: var(--bone); }
+  .flag.warn { border-color: var(--caution); }
+  .is-hidden { display: none !important; }
+  .regime-tag { font-family: var(--body); font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--warm-bright); }
+</style>
+</head>
+<body>
+
+<div class="top-banner">
+  <div class="container">
+    <div class="badges">
+      <span class="badge"><span class="eho-icon"></span> Equal Housing Opportunity</span>
+      <span class="badge">NMLS #1909129</span>
+      <span class="badge">Barrett Financial Group · NMLS #181106</span>
+    </div>
+    <div>For licensed mortgage professionals · Educational use</div>
+  </div>
+</div>
+
+<header class="nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="brand">
+      <div class="brand-mark">D</div>
+      <div class="brand-text">
+        <div class="brand-name">The Desk</div>
+        <div class="brand-sub">By Check with Chuck</div>
+      </div>
+    </a>
+    <nav class="nav-links">
+      <a href="index.html#tools">Tools</a>
+      <a href="index.html#reference">Reference</a>
+      <a href="index.html#scenarios">Scenarios</a>
+      <a href="index.html#about">About</a>
+    </nav>
+    <a href="https://www.charlesbacigalupi.com" class="nav-back">← checkwithchuck.com</a>
+  </div>
+</header>
+
+<section class="tool-page">
+  <div class="container">
+
+    <div class="tool-page-head">
+      <div class="breadcrumb"><a href="index.html">The Desk</a> · Income · <span style="color: var(--bone);">Self-Employed Income</span></div>
+      <h1>Self-Employed <em>Income</em></h1>
+      <p class="tool-lede">Qualifying income from the tax returns the way underwriting runs it — <strong style="color:var(--bone);">Schedule C, Partnership (1065), S-Corp (1120S), and C-Corp (1120)</strong> — using Fannie Mae <strong style="color:var(--bone);">Form 1084</strong> / Freddie Mac <strong style="color:var(--bone);">Form 91</strong> add-backs, then the averaging and flags for your loan program.</p>
+    </div>
+
+    <div class="calc-grid">
+      <div class="calc-input">
+        <h3>Inputs</h3>
+        <p class="calc-sub">Pick the program and business type, then enter the line items for two years.</p>
+
+        <div class="subhead">Loan program</div>
+        <div class="seg" id="program-seg">
+          <button data-prog="fannie" class="active" type="button">Fannie Mae</button>
+          <button data-prog="freddie" type="button">Freddie Mac</button>
+          <button data-prog="fha" type="button">FHA</button>
+          <button data-prog="va" type="button">VA</button>
+        </div>
+
+        <div class="subhead">Business structure</div>
+        <div class="field">
+          <select id="structure">
+            <option value="soleprop" selected>Sole Proprietor — Schedule C</option>
+            <option value="partnership">Partnership — Form 1065 + K-1</option>
+            <option value="scorp">S-Corporation — Form 1120S + K-1</option>
+            <option value="ccorp">C-Corporation — Form 1120</option>
+          </select>
+        </div>
+        <div class="field" id="ownership-field">
+          <label class="field-label" for="ownership">Borrower ownership %</label>
+          <div class="input-wrap with-suffix" data-suffix="%" style="position:relative;"><input type="number" id="ownership" value="100" step="1" min="0" max="100"></div>
+          <p class="field-hint">Below 25% is generally not treated as self-employed. Business-return add-backs are weighted by this share; K-1 amounts are already your share.</p>
+        </div>
+
+        <div class="subhead">Tax-return figures</div>
+        <div class="year-head">
+          <span class="yh-label">Most-recent two years →</span>
+          <select id="year1" class="mini-input"></select>
+          <select id="year2" class="mini-input"></select>
+        </div>
+        <div id="lines"></div>
+
+        <div class="check-toggle">
+          <input type="checkbox" id="one-year">
+          <label for="one-year">Use the most recent year only (one-year self-employment history)</label>
+        </div>
+      </div>
+
+      <div>
+        <div class="result-panel">
+          <span class="eyebrow">Results</span>
+          <h3>Qualifying income</h3>
+
+          <div class="result-row">
+            <span class="result-label">Adjusted income · <span id="lbl-y1">Yr 1</span></span>
+            <span class="result-value" id="r-y1">$—</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">Adjusted income · <span id="lbl-y2">Yr 2</span></span>
+            <span class="result-value" id="r-y2">$—</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">24-month average / mo</span>
+            <span class="result-value" id="r-avg">$—</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">Most recent year / mo</span>
+            <span class="result-value" id="r-recent">$—</span>
+          </div>
+
+          <div class="verdict" id="verdict"></div>
+
+          <div class="result-row headline">
+            <span class="result-label">Monthly qualifying income <span class="regime-tag" id="r-progtag"></span></span>
+            <span class="result-value" id="r-final">$—</span>
+          </div>
+
+          <div class="flags" id="flags"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="math-notes">
+      <h4>The method &amp; the program rules</h4>
+      <ol class="math-list">
+        <li>Each year's <strong>adjusted business income</strong> starts from the tax return's bottom line and applies the Fannie 1084 / Freddie 91 treatment: <span class="formula">add back non-cash deductions</span> (depreciation, depletion, amortization, casualty loss, business-use-of-home) and <span class="formula">subtract non-cash / nonrecurring items</span> (nonrecurring income or gains, the nondeductible meals portion, short-term notes payable).</li>
+        <li>Vehicle depreciation inside the standard mileage deduction is added back as <span class="formula">business miles × the IRS depreciation factor</span> for that year (2025 = $0.33, 2024 = $0.30, 2023 = $0.28, 2022/2021 = $0.26, 2026 = $0.35).</li>
+        <li>For <strong>partnerships and S-corps</strong>, K-1 amounts are already the borrower's share; business-return add-backs are multiplied by ownership %. S-corp and C-corp add the borrower's <strong>W-2 wages</strong> from the entity. C-corp income is corporate income net of tax, times ownership %.</li>
+        <li>The income is averaged over <span class="formula">24 months</span> when stable or rising. If the most recent year is <strong>lower</strong>, the tool uses the most-recent-year figure and flags it — Fannie/Freddie require documenting the trend; FHA and VA generally require the more conservative figure and a 2-year history.</li>
+        <li>Flags surface the cases underwriting cares about: declining income, &lt;25% ownership, a business loss, and (for K-1 income) whether distributions are supported by business liquidity.</li>
+      </ol>
+      <p style="font-size:13px;color:var(--charcoal-300);line-height:1.6;margin-top:18px;">
+        Estimates only. Final qualifying income is determined by the underwriter from complete tax returns, transcripts, AUS findings, and program guidelines (Fannie B3-3.2/3.3/3.4, Freddie 5304, FHA 4000.1, VA Lenders Handbook Ch. 4). This tool does not store anything you enter.
+      </p>
+    </div>
+
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <h4>The Desk</h4>
+        <p>A working toolkit for loan originators. Curated by Charles Bacigalupi III, NMLS #1909129, at Barrett Financial Group, LLC, NMLS #181106.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Categories</h5>
+        <ul>
+          <li><a href="index.html#tools">VA Loans</a></li>
+          <li><a href="index.html#tools">Income Analysis</a></li>
+          <li><a href="index.html#tools">Qualifying &amp; DTI</a></li>
+          <li><a href="index.html#tools">Refinance</a></li>
+          <li><a href="index.html#reference">Reference Tables</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://www.charlesbacigalupi.com">checkwithchuck.com</a></li>
+          <li><a href="https://www.linkedin.com/in/charles-bacigalupi-iii/">LinkedIn</a></li>
+          <li><a href="https://www.barrettfinancial.com">Barrett Financial</a></li>
+          <li><a href="mailto:charlesb@barrettfinancial.com">Email Chuck</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-compliance">
+      <p><strong style="color: var(--bone);">For licensed mortgage professionals.</strong> The Desk is an educational toolkit. Calculators are estimates only and do not constitute a loan approval, commitment to lend, or a substitute for a Loan Estimate. Use your AUS findings and program guidelines as authoritative.</p>
+      <p>Charles Peter Bacigalupi III · Mortgage Loan Originator · NMLS #1909129. Powered by Barrett Financial Group, LLC · NMLS #181106 · 2701 East Insight Way, Suite 150, Chandler, AZ 85286. Licensed in AZ, CO, CA, TX, FL, WA, NJ. Equal Housing Opportunity.</p>
+      <p class="small">© <span id="year">2026</span> The Desk · checkwithchuck.com</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+  const $ = (id) => document.getElementById(id);
+  const fmt = (n) => (n < 0 ? '-$' : '$') + Math.abs(Math.round(n)).toLocaleString('en-US');
+
+  // IRS depreciation portion of the standard mileage rate, by tax year
+  const MILE = { 2021:0.26, 2022:0.26, 2023:0.28, 2024:0.30, 2025:0.33, 2026:0.35 };
+
+  const PROGRAMS = {
+    fannie:  { name:'Fannie Mae', tag:'1084', twoYr:false },
+    freddie: { name:'Freddie Mac', tag:'Form 91', twoYr:false },
+    fha:     { name:'FHA', tag:'4000.1', twoYr:true },
+    va:      { name:'VA', tag:'Lenders Hbk', twoYr:true }
+  };
+
+  // h = sub-section header rendered before this line. own = weight by ownership %. mileage = miles x factor.
+  const STRUCTURES = {
+    soleprop: { ownership:false, lines:[
+      { key:'net',   label:'Net profit or (loss)', sub:'Schedule C, Line 31', sign:1, h:'Schedule C' },
+      { key:'nonrec',label:'Nonrecurring other (income) / loss', sub:'Line 6 — subtract income, add a loss', sign:-1 },
+      { key:'deplt', label:'Depletion', sub:'Line 12', sign:1 },
+      { key:'deprec',label:'Depreciation', sub:'Line 13', sign:1 },
+      { key:'meals', label:'Nondeductible meals', sub:'Line 24b', sign:-1 },
+      { key:'home',  label:'Business use of home', sub:'Line 30', sign:1 },
+      { key:'amort', label:'Amortization / casualty loss', sub:'Form 4562', sign:1 },
+      { key:'miles', label:'Business miles driven', sub:'× IRS depreciation factor', sign:1, mileage:true }
+    ]},
+    partnership: { ownership:true, lines:[
+      { key:'k1ord', label:'Ordinary business income', sub:'K-1 Line 1 — your share', sign:1, h:'From the K-1 (already your share)' },
+      { key:'k1rent',label:'Net rental real estate / other rental', sub:'K-1 Lines 2–3', sign:1 },
+      { key:'gtd',   label:'Guaranteed payments to partner', sub:'K-1 Line 4', sign:1 },
+      { key:'bdeprec',label:'Depreciation', sub:'1065 / Form 4562', sign:1, own:true, h:'From the 1065 — weighted by ownership %' },
+      { key:'bdeplt',label:'Depletion', sub:'1065 Line 17', sign:1, own:true },
+      { key:'bamort',label:'Amortization / casualty loss', sub:'1065', sign:1, own:true },
+      { key:'bnotes',label:'Mortgages / notes payable < 1 yr', sub:'Schedule L', sign:-1, own:true },
+      { key:'bnonrec',label:'Nonrecurring other (income) / loss', sub:'1065', sign:-1, own:true },
+      { key:'bmeals',label:'Nondeductible meals & entertainment', sub:'1065', sign:-1, own:true }
+    ]},
+    scorp: { ownership:true, lines:[
+      { key:'w2',    label:'W-2 wages from the S-corp to borrower', sub:'borrower\u2019s salary from the entity', sign:1, h:'Borrower compensation' },
+      { key:'k1ord', label:'Ordinary business income', sub:'K-1 Line 1 — your share', sign:1, h:'From the K-1 (already your share)' },
+      { key:'k1rent',label:'Net rental real estate / other rental', sub:'K-1 Lines 2–3', sign:1 },
+      { key:'bdeprec',label:'Depreciation', sub:'1120S / Form 4562', sign:1, own:true, h:'From the 1120S — weighted by ownership %' },
+      { key:'bdeplt',label:'Depletion', sub:'1120S', sign:1, own:true },
+      { key:'bamort',label:'Amortization / casualty loss', sub:'1120S', sign:1, own:true },
+      { key:'bnotes',label:'Mortgages / notes payable < 1 yr', sub:'Schedule L', sign:-1, own:true },
+      { key:'bnonrec',label:'Nonrecurring other (income) / loss', sub:'1120S', sign:-1, own:true },
+      { key:'bmeals',label:'Nondeductible meals & entertainment', sub:'1120S', sign:-1, own:true }
+    ]},
+    ccorp: { ownership:true, lines:[
+      { key:'taxinc',label:'Taxable income', sub:'1120 Line 30', sign:1, own:true, h:'From the 1120 — weighted by ownership %' },
+      { key:'tax',   label:'Total tax', sub:'1120 Line 31', sign:-1, own:true },
+      { key:'cdeprec',label:'Depreciation', sub:'Form 4562', sign:1, own:true },
+      { key:'cdeplt',label:'Depletion', sub:'1120', sign:1, own:true },
+      { key:'camort',label:'Amortization / casualty loss', sub:'1120', sign:1, own:true },
+      { key:'cnol', label:'Net operating loss & special deductions', sub:'1120 Lines 29a–29b', sign:1, own:true },
+      { key:'cnonrec',label:'Nonrecurring other (income) / loss', sub:'1120', sign:-1, own:true },
+      { key:'cnotes',label:'Mortgages / notes payable < 1 yr', sub:'Schedule L', sign:-1, own:true },
+      { key:'cmeals',label:'Nondeductible meals & entertainment', sub:'1120', sign:-1, own:true },
+      { key:'w2',    label:'W-2 wages from the corp to borrower', sub:'borrower\u2019s salary from the entity', sign:1, h:'Borrower compensation' }
+    ]}
+  };
+
+  let PROG = 'fannie';
+  let STRUCT = 'soleprop';
+
+  // year selectors
+  (function initYears(){
+    const yrs = [2026,2025,2024,2023,2022,2021];
+    const y1 = $('year1'), y2 = $('year2');
+    yrs.forEach(y => { y1.add(new Option(y, y)); y2.add(new Option(y, y)); });
+    y1.value = 2025; y2.value = 2024;
+  })();
+
+  function renderLines(){
+    const cfg = STRUCTURES[STRUCT];
+    const box = $('lines');
+    box.innerHTML = '';
+    cfg.lines.forEach(line => {
+      if (line.h) {
+        const hd = document.createElement('div');
+        hd.className = 'subhead tight';
+        hd.textContent = line.h;
+        box.appendChild(hd);
+      }
+      const row = document.createElement('div');
+      row.className = 'line-row';
+      row.innerHTML =
+        '<div class="line-label">' + line.label + '<small>' + line.sub + '</small></div>' +
+        '<input class="mini-input" type="number" step="100" data-line="' + line.key + '" data-yr="1" placeholder="0">' +
+        '<input class="mini-input" type="number" step="100" data-line="' + line.key + '" data-yr="2" placeholder="0">';
+      box.appendChild(row);
+    });
+    box.querySelectorAll('input').forEach(i => { i.addEventListener('input', calc); });
+    $('ownership-field').classList.toggle('is-hidden', !cfg.ownership);
+    calc();
+  }
+
+  function val(key, yr){
+    const el = document.querySelector('input[data-line="' + key + '"][data-yr="' + yr + '"]');
+    return el ? (parseFloat(el.value) || 0) : 0;
+  }
+
+  function yearTotal(yr){
+    const cfg = STRUCTURES[STRUCT];
+    const taxYear = parseInt(yr === 1 ? $('year1').value : $('year2').value, 10);
+    const own = (parseFloat($('ownership').value) || 0) / 100;
+    let sum = 0;
+    cfg.lines.forEach(line => {
+      let raw = val(line.key, yr);
+      if (line.mileage) raw = raw * (MILE[taxYear] || 0);
+      let c = line.sign * raw;
+      if (line.own && cfg.ownership) c *= own;
+      sum += c;
+    });
+    return sum;
+  }
+
+  function calc(){
+    const oneYear = $('one-year').checked;
+    const y1 = yearTotal(1), y2 = yearTotal(2);
+    const ownPct = parseFloat($('ownership').value) || 0;
+
+    $('lbl-y1').textContent = $('year1').value;
+    $('lbl-y2').textContent = $('year2').value;
+    $('r-y1').textContent = fmt(y1);
+    $('r-y2').textContent = oneYear ? '—' : fmt(y2);
+
+    const avg24 = oneYear ? (y1 / 12) : ((y1 + y2) / 24);
+    const recent = y1 / 12;
+    $('r-avg').textContent = oneYear ? 'n/a' : fmt(avg24);
+    $('r-recent').textContent = fmt(recent);
+
+    const declining = !oneYear && y1 < y2;
+    let finalMonthly, verdictSub;
+    if (oneYear) {
+      finalMonthly = recent;
+      verdictSub = 'One-year history — most recent year ÷ 12.';
+    } else if (declining) {
+      finalMonthly = recent;
+      verdictSub = 'Income declined year-over-year — using the most recent (lower) year. Document the trend.';
+    } else {
+      finalMonthly = avg24;
+      verdictSub = 'Stable or rising — 24-month average.';
+    }
+
+    const v = $('verdict');
+    if (finalMonthly <= 0) {
+      v.className = 'verdict verdict-warn';
+      v.innerHTML = 'No positive income' + '<span class="v-sub">Adjusted income is zero or a loss — the loss must be deducted from qualifying income.</span>';
+    } else {
+      v.className = 'verdict ' + (declining ? 'verdict-warn' : 'verdict-pass');
+      v.innerHTML = fmt(finalMonthly) + ' / mo' + '<span class="v-sub">' + verdictSub + '</span>';
+    }
+
+    $('r-final').textContent = fmt(Math.max(0, finalMonthly));
+    $('r-progtag').textContent = PROGRAMS[PROG].name + ' · ' + PROGRAMS[PROG].tag;
+
+    renderFlags({ y1, y2, declining, oneYear, ownPct, finalMonthly });
+  }
+
+  function renderFlags(s){
+    const box = $('flags');
+    box.innerHTML = '';
+    const add = (html, warn) => {
+      const d = document.createElement('div');
+      d.className = 'flag' + (warn ? ' warn' : '');
+      d.innerHTML = html;
+      box.appendChild(d);
+    };
+    const cfg = STRUCTURES[STRUCT];
+    const prog = PROGRAMS[PROG];
+
+    if (s.oneYear && prog.twoYr) {
+      add('<b>' + prog.name + ' generally requires a 2-year self-employment history.</b> A one-year history is the exception and needs strong compensating factors and documentation.', true);
+    }
+    if (s.declining) {
+      if (prog.twoYr) add('<b>Declining income.</b> ' + prog.name + ' generally requires the more conservative figure and a written explanation of the decline.', true);
+      else add('<b>Declining income.</b> ' + prog.name + ' allows the lower figure with documentation of the trend and its likelihood of continuing.', true);
+    }
+    if (cfg.ownership && s.ownPct > 0 && s.ownPct < 25) {
+      add('<b>Below 25% ownership.</b> Not treated as self-employed — income is generally handled as variable/secondary wage and the business returns may not be required.', true);
+    }
+    if ((s.y1 < 0 || s.y2 < 0)) {
+      add('<b>A year shows a loss.</b> A business loss reduces qualifying income and may count against the borrower; confirm it isn\u2019t one-time.', true);
+    }
+    if ((STRUCT === 'partnership' || STRUCT === 'scorp')) {
+      add('<b>Distributions vs. liquidity.</b> ' + prog.name + ' generally expects K-1 ordinary income to be supported by adequate business liquidity (or actual distributions) before it counts. Verify before relying on the full share.');
+    }
+    if (STRUCT === 'ccorp') {
+      add('<b>C-corp access.</b> Corporate income only counts if the borrower can document access to the funds (typically a 100% owner) and the business can support distributions.');
+    }
+    if (s.finalMonthly > 0 && !s.declining && !s.oneYear) {
+      add('Using the 24-month average. If you have a YTD P&amp;L showing continued income, keep it in the file to support stability.');
+    }
+  }
+
+  // events
+  $('program-seg').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    $('program-seg').querySelectorAll('button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active'); PROG = b.dataset.prog; calc();
+  }));
+  $('structure').addEventListener('change', e => { STRUCT = e.target.value; renderLines(); });
+  $('ownership').addEventListener('input', calc);
+  $('year1').addEventListener('change', calc);
+  $('year2').addEventListener('change', calc);
+  $('one-year').addEventListener('change', calc);
+
+  renderLines();
+</script>
+
+</body>
+</html>
