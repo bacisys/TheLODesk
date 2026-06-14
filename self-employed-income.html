@@ -109,7 +109,7 @@
     <div class="tool-page-head">
       <div class="breadcrumb"><a href="index.html">The Desk</a> · Income · <span style="color: var(--bone);">Self-Employed Income</span></div>
       <h1>Self-Employed <em>Income</em></h1>
-      <p class="tool-lede">Qualifying income from the tax returns the way underwriting runs it — <strong style="color:var(--bone);">Schedule C, Partnership (1065), S-Corp (1120S), and C-Corp (1120)</strong> — using Fannie Mae <strong style="color:var(--bone);">Form 1084</strong> / Freddie Mac <strong style="color:var(--bone);">Form 91</strong> add-backs, then the averaging and flags for your loan program.</p>
+      <p class="tool-lede">Qualifying income built line-for-line on Fannie Mae's <strong style="color:var(--bone);">Form 1084 — Cash Flow Analysis</strong>, for <strong style="color:var(--bone);">Schedule C, Partnership (1065), S-Corp (1120S), and C-Corp (1120)</strong>: the tax-return add-backs, ownership weighting, two-year averaging, and the flags underwriting looks for.</p>
     </div>
 
     <button type="button" class="print-btn no-print" onclick="window.print()">
@@ -122,12 +122,10 @@
         <h3>Inputs</h3>
         <p class="calc-sub">Pick the program and business type, then enter the line items for two years.</p>
 
-        <div class="subhead">Loan program</div>
-        <div class="seg" id="program-seg">
-          <button data-prog="fannie" class="active" type="button">Fannie Mae</button>
-          <button data-prog="freddie" type="button">Freddie Mac</button>
-          <button data-prog="fha" type="button">FHA</button>
-          <button data-prog="va" type="button">VA</button>
+        <div class="subhead">Basis</div>
+        <div class="field" style="margin-bottom:6px;">
+          <span class="regime-tag">Fannie Mae · Form 1084</span>
+          <p class="field-hint">Cash Flow Analysis worksheet — every line below maps to a Form 1084 line. Freddie Mac (Form 91) is nearly identical and gets added as a toggle once that form is loaded.</p>
         </div>
 
         <div class="subhead">Business structure</div>
@@ -142,7 +140,7 @@
         <div class="field" id="ownership-field">
           <label class="field-label" for="ownership">Borrower ownership %</label>
           <div class="input-wrap with-suffix" data-suffix="%" style="position:relative;"><input type="number" id="ownership" value="100" step="1" min="0" max="100"></div>
-          <p class="field-hint">Below 25% is generally not treated as self-employed. Business-return add-backs are weighted by this share; K-1 amounts are already your share.</p>
+          <p class="field-hint">Below 25% is generally not treated as self-employed. For partnerships and S-corps the business-return adjustments are multiplied by this share (K-1 amounts are already your share); a C-corp's income is used only at 100% ownership.</p>
         </div>
 
         <div class="subhead">Tax-return figures</div>
@@ -196,14 +194,15 @@
     <div class="math-notes">
       <h4>The method &amp; the program rules</h4>
       <ol class="math-list">
-        <li>Each year's <strong>adjusted business income</strong> starts from the tax return's bottom line and applies the Fannie 1084 / Freddie 91 treatment: <span class="formula">add back non-cash deductions</span> (depreciation, depletion, amortization, casualty loss, business-use-of-home) and <span class="formula">subtract non-cash / nonrecurring items</span> (nonrecurring income or gains, the nondeductible meals portion, short-term notes payable).</li>
-        <li>Vehicle depreciation inside the standard mileage deduction is added back as <span class="formula">business miles × the IRS depreciation factor</span> for that year (2025 = $0.33, 2024 = $0.30, 2023 = $0.28, 2022/2021 = $0.26, 2026 = $0.35).</li>
-        <li>For <strong>partnerships and S-corps</strong>, K-1 amounts are already the borrower's share; business-return add-backs are multiplied by ownership %. S-corp and C-corp add the borrower's <strong>W-2 wages</strong> from the entity. C-corp income is corporate income net of tax, times ownership %.</li>
-        <li>The income is averaged over <span class="formula">24 months</span> when stable or rising. If the most recent year is <strong>lower</strong>, the tool uses the most-recent-year figure and flags it — Fannie/Freddie require documenting the trend; FHA and VA generally require the more conservative figure and a 2-year history.</li>
-        <li>Flags surface the cases underwriting cares about: declining income, &lt;25% ownership, a business loss, and (for K-1 income) whether distributions are supported by business liquidity.</li>
+        <li>Each year's <strong>adjusted cash flow</strong> is built on Fannie Mae <span class="formula">Form 1084</span>. Start with the return's bottom line, then <strong>add back</strong> the non-cash deductions \u2014 depreciation, depletion, amortization/casualty loss, business use of home \u2014 and <strong>subtract</strong> nonrecurring income and the non-deductible travel & meals exclusion (Schedule C: lines 3a\u20133g; B3-3.6-03).</li>
+        <li><strong>Vehicle mileage</strong> (Form 1084 line 3d): when the standard mileage deduction is used, the depreciation portion is added back as <span class="formula">business miles \u00d7 the IRS factor</span> for that year \u2014 2026 = $0.35, 2025 = $0.33, 2024 = $0.30, 2023 = $0.28, 2022/2021 = $0.26.</li>
+        <li><strong>Partnerships (1065) and S-corps (1120S):</strong> K-1 ordinary income, net rental, and guaranteed payments are already your share and are <em>not</em> weighted (lines 7 / 9). The business-return adjustments (depreciation, depletion, amortization, \u2212notes payable &lt;1yr, \u2212travel/entertainment) are summed and <span class="formula">\u00d7 your ownership %</span> (lines 8 / 10). S-corp adds your <strong>W-2</strong> from the entity.</li>
+        <li><strong>C-corp (1120):</strong> taxable income \u2212 total tax + the add-backs \u2212 notes payable \u2212 travel/entertainment, then <strong>less dividends paid to you</strong>, used only when you own <span class="formula">100%</span> (line 11). Add your W-2 from the corporation.</li>
+        <li><strong>Averaging.</strong> The documented years are averaged over <span class="formula">24 months</span>. The guide calls for <em>analyzing</em> a rise or fall \u2014 not auto-substituting a year \u2014 so both the 24-month average and the most-recent year are shown, and a decline is flagged for you to document (B3-3.1-01; Freddie 5304.1(f)).</li>
+        <li><strong>K-1 distributions are not income.</strong> Ordinary income counts only if distributed or supported by business liquidity; cash distributions themselves establish access, not qualifying income (Form 1084 instructions; Freddie 5304.1(e)). Flags surface declines, &lt;25% ownership, loss years, and the distribution/liquidity test.</li>
       </ol>
       <p style="font-size:13px;color:var(--charcoal-300);line-height:1.6;margin-top:18px;">
-        Estimates only. Final qualifying income is determined by the underwriter from complete tax returns, transcripts, AUS findings, and program guidelines (Fannie B3-3.2/3.3/3.4, Freddie 5304, FHA 4000.1, VA Lenders Handbook Ch. 4). This tool does not store anything you enter.
+        Estimates only. Final qualifying income is determined by the underwriter from complete tax returns, transcripts, AUS findings, and program guidelines (Fannie Mae Form 1084 &amp; Selling Guide B3-3.5\u2013B3-3.7; Freddie Mac Form 91 &amp; Guide 5304.1). This tool does not store anything you enter.
       </p>
     </div>
 
@@ -257,62 +256,58 @@
   // IRS depreciation portion of the standard mileage rate, by tax year
   const MILE = { 2021:0.26, 2022:0.26, 2023:0.28, 2024:0.30, 2025:0.33, 2026:0.35 };
 
-  const PROGRAMS = {
-    fannie:  { name:'Fannie Mae', tag:'1084', twoYr:false },
-    freddie: { name:'Freddie Mac', tag:'Form 91', twoYr:false },
-    fha:     { name:'FHA', tag:'4000.1', twoYr:true },
-    va:      { name:'VA', tag:'Lenders Hbk', twoYr:true }
-  };
-
-  // h = sub-section header rendered before this line. own = weight by ownership %. mileage = miles x factor.
+  // Form 1084 line map. h = sub-header before this line. own = part of the business-return
+  // subtotal multiplied by ownership %. mileage = business miles x IRS depreciation factor.
   const STRUCTURES = {
     soleprop: { ownership:false, lines:[
-      { key:'net',   label:'Net profit or (loss)', sub:'Schedule C, Line 31', sign:1, h:'Schedule C' },
-      { key:'nonrec',label:'Nonrecurring other (income) / loss', sub:'Line 6 — subtract income, add a loss', sign:-1 },
-      { key:'deplt', label:'Depletion', sub:'Line 12', sign:1 },
-      { key:'deprec',label:'Depreciation', sub:'Line 13', sign:1 },
-      { key:'meals', label:'Nondeductible meals', sub:'Line 24b', sign:-1 },
-      { key:'home',  label:'Business use of home', sub:'Line 30', sign:1 },
-      { key:'amort', label:'Amortization / casualty loss', sub:'Form 4562', sign:1 },
-      { key:'miles', label:'Business miles driven', sub:'× IRS depreciation factor', sign:1, mileage:true }
+      { key:'net',   label:'Net profit or (loss)', sub:'Sch C Line 31 \u00b7 1084 L3a', sign:1, h:'Schedule C \u2014 sole proprietorship' },
+      { key:'nonrec',label:'Nonrecurring other (income) / loss', sub:'1084 L3b \u00b7 subtract income, add a loss (enter loss as \u2212)', sign:-1 },
+      { key:'deplt', label:'Depletion', sub:'1084 L3c', sign:1 },
+      { key:'deprec',label:'Depreciation', sub:'1084 L3d', sign:1 },
+      { key:'miles', label:'Business miles driven', sub:'1084 L3d \u00b7 \u00d7 depreciation factor', sign:1, mileage:true },
+      { key:'meals', label:'Non-deductible travel & meals', sub:'1084 L3e', sign:-1 },
+      { key:'home',  label:'Business use of home', sub:'1084 L3f', sign:1 },
+      { key:'amort', label:'Amortization / casualty loss', sub:'1084 L3g', sign:1 }
     ]},
     partnership: { ownership:true, lines:[
-      { key:'k1ord', label:'Ordinary business income', sub:'K-1 Line 1 — your share', sign:1, h:'From the K-1 (already your share)' },
-      { key:'k1rent',label:'Net rental real estate / other rental', sub:'K-1 Lines 2–3', sign:1 },
-      { key:'gtd',   label:'Guaranteed payments to partner', sub:'K-1 Line 4', sign:1 },
-      { key:'bdeprec',label:'Depreciation', sub:'1065 / Form 4562', sign:1, own:true, h:'From the 1065 — weighted by ownership %' },
-      { key:'bdeplt',label:'Depletion', sub:'1065 Line 17', sign:1, own:true },
-      { key:'bamort',label:'Amortization / casualty loss', sub:'1065', sign:1, own:true },
-      { key:'bnotes',label:'Mortgages / notes payable < 1 yr', sub:'Schedule L', sign:-1, own:true },
-      { key:'bnonrec',label:'Nonrecurring other (income) / loss', sub:'1065', sign:-1, own:true },
-      { key:'bmeals',label:'Nondeductible meals & entertainment', sub:'1065', sign:-1, own:true }
+      { key:'k1ord', label:'Ordinary income (loss)', sub:'K-1 Box 1 \u00b7 1084 L7a', sign:1, h:'Schedule K-1 (1065) \u2014 already your share' },
+      { key:'k1rent',label:'Net rental real estate / other net income', sub:'K-1 Box 2\u20133 \u00b7 1084 L7b', sign:1 },
+      { key:'gtd',   label:'Guaranteed payments to partner', sub:'K-1 Box 4 \u00b7 1084 L7c (2-yr history)', sign:1 },
+      { key:'p_oth', label:'Ordinary (income) loss \u2014 other partnerships', sub:'1084 L8a', sign:-1, own:true, h:'Form 1065 adjustments \u2014 \u00d7 ownership %' },
+      { key:'p_nonrec',label:'Nonrecurring other (income) loss', sub:'1084 L8b', sign:-1, own:true },
+      { key:'p_deprec',label:'Depreciation', sub:'1084 L8c (incl. 8825)', sign:1, own:true },
+      { key:'p_deplt',label:'Depletion', sub:'1084 L8d', sign:1, own:true },
+      { key:'p_amort',label:'Amortization / casualty loss', sub:'1084 L8e', sign:1, own:true },
+      { key:'p_notes',label:'Mortgages / notes payable < 1 yr', sub:'Sch L \u00b7 1084 L8f', sign:-1, own:true },
+      { key:'p_meals',label:'Non-deductible travel & entertainment', sub:'Sch M-1 \u00b7 1084 L8g', sign:-1, own:true }
     ]},
     scorp: { ownership:true, lines:[
-      { key:'w2',    label:'W-2 wages from the S-corp to borrower', sub:'borrower\u2019s salary from the entity', sign:1, h:'Borrower compensation' },
-      { key:'k1ord', label:'Ordinary business income', sub:'K-1 Line 1 — your share', sign:1, h:'From the K-1 (already your share)' },
-      { key:'k1rent',label:'Net rental real estate / other rental', sub:'K-1 Lines 2–3', sign:1 },
-      { key:'bdeprec',label:'Depreciation', sub:'1120S / Form 4562', sign:1, own:true, h:'From the 1120S — weighted by ownership %' },
-      { key:'bdeplt',label:'Depletion', sub:'1120S', sign:1, own:true },
-      { key:'bamort',label:'Amortization / casualty loss', sub:'1120S', sign:1, own:true },
-      { key:'bnotes',label:'Mortgages / notes payable < 1 yr', sub:'Schedule L', sign:-1, own:true },
-      { key:'bnonrec',label:'Nonrecurring other (income) / loss', sub:'1120S', sign:-1, own:true },
-      { key:'bmeals',label:'Nondeductible meals & entertainment', sub:'1120S', sign:-1, own:true }
+      { key:'w2',    label:'W-2 wages from the S-corp', sub:'1084 L1', sign:1, h:'Borrower W-2 from the entity' },
+      { key:'k1ord', label:'Ordinary income (loss)', sub:'K-1 Box 1 \u00b7 1084 L9a', sign:1, h:'Schedule K-1 (1120S) \u2014 already your share' },
+      { key:'k1rent',label:'Net rental real estate / other net rental', sub:'K-1 Box 2\u20133 \u00b7 1084 L9b', sign:1 },
+      { key:'s_nonrec',label:'Nonrecurring other (income) loss', sub:'1084 L10a', sign:-1, own:true, h:'Form 1120S adjustments \u2014 \u00d7 ownership %' },
+      { key:'s_deprec',label:'Depreciation', sub:'1084 L10b (incl. 8825)', sign:1, own:true },
+      { key:'s_deplt',label:'Depletion', sub:'1084 L10c', sign:1, own:true },
+      { key:'s_amort',label:'Amortization / casualty loss', sub:'1084 L10d', sign:1, own:true },
+      { key:'s_notes',label:'Mortgages / notes payable < 1 yr', sub:'Sch L \u00b7 1084 L10e', sign:-1, own:true },
+      { key:'s_meals',label:'Non-deductible travel & entertainment', sub:'Sch M-1 \u00b7 1084 L10f', sign:-1, own:true }
     ]},
     ccorp: { ownership:true, lines:[
-      { key:'taxinc',label:'Taxable income', sub:'1120 Line 30', sign:1, own:true, h:'From the 1120 — weighted by ownership %' },
-      { key:'tax',   label:'Total tax', sub:'1120 Line 31', sign:-1, own:true },
-      { key:'cdeprec',label:'Depreciation', sub:'Form 4562', sign:1, own:true },
-      { key:'cdeplt',label:'Depletion', sub:'1120', sign:1, own:true },
-      { key:'camort',label:'Amortization / casualty loss', sub:'1120', sign:1, own:true },
-      { key:'cnol', label:'Net operating loss & special deductions', sub:'1120 Lines 29a–29b', sign:1, own:true },
-      { key:'cnonrec',label:'Nonrecurring other (income) / loss', sub:'1120', sign:-1, own:true },
-      { key:'cnotes',label:'Mortgages / notes payable < 1 yr', sub:'Schedule L', sign:-1, own:true },
-      { key:'cmeals',label:'Nondeductible meals & entertainment', sub:'1120', sign:-1, own:true },
-      { key:'w2',    label:'W-2 wages from the corp to borrower', sub:'borrower\u2019s salary from the entity', sign:1, h:'Borrower compensation' }
+      { key:'c_taxinc',label:'Taxable income', sub:'1120 \u00b7 1084 L11a', sign:1, h:'Form 1120 \u2014 regular corporation (100% owner)' },
+      { key:'c_tax',  label:'Total tax', sub:'1084 L11b', sign:-1 },
+      { key:'c_capg', label:'Nonrecurring (gains) losses', sub:'1084 L11c \u00b7 subtract gains, add losses', sign:-1 },
+      { key:'c_nonrec',label:'Nonrecurring other (income) loss', sub:'1084 L11d', sign:-1 },
+      { key:'c_deprec',label:'Depreciation', sub:'1084 L11e', sign:1 },
+      { key:'c_deplt',label:'Depletion', sub:'1084 L11f', sign:1 },
+      { key:'c_amort',label:'Amortization / casualty loss', sub:'1084 L11g', sign:1 },
+      { key:'c_nol', label:'Net operating loss & special deductions', sub:'1084 L11h', sign:1 },
+      { key:'c_notes',label:'Mortgages / notes payable < 1 yr', sub:'Sch L \u00b7 1084 L11i', sign:-1 },
+      { key:'c_meals',label:'Non-deductible travel & entertainment', sub:'Sch M-1 \u00b7 1084 L11j', sign:-1 },
+      { key:'c_div',  label:'Less: dividends paid to borrower', sub:'Sch M-2 \u00b7 1084 L11l', sign:-1 },
+      { key:'c_w2',   label:'W-2 wages from the corp', sub:'1084 L1', sign:1, h:'Borrower W-2 from the entity' }
     ]}
   };
 
-  let PROG = 'fannie';
   let STRUCT = 'soleprop';
 
   // year selectors
@@ -359,9 +354,9 @@
     let sum = 0;
     cfg.lines.forEach(line => {
       let raw = val(line.key, yr);
-      if (line.mileage) raw = raw * (MILE[taxYear] || 0);
+      if (line.mileage) raw = raw * (MILE[taxYear] || 0);   // 1084 L3d vehicle depreciation
       let c = line.sign * raw;
-      if (line.own && cfg.ownership) c *= own;
+      if (line.own) c *= own;                               // 1065/1120S business subtotal x ownership %
       sum += c;
     });
     return sum;
@@ -375,82 +370,67 @@
     $('lbl-y1').textContent = $('year1').value;
     $('lbl-y2').textContent = $('year2').value;
     $('r-y1').textContent = fmt(y1);
-    $('r-y2').textContent = oneYear ? '—' : fmt(y2);
+    $('r-y2').textContent = oneYear ? '\u2014' : fmt(y2);
 
     const avg24 = oneYear ? (y1 / 12) : ((y1 + y2) / 24);
     const recent = y1 / 12;
     $('r-avg').textContent = oneYear ? 'n/a' : fmt(avg24);
     $('r-recent').textContent = fmt(recent);
 
+    // Form 1084 / Selling Guide: average the documented years; analyze fluctuation,
+    // do not auto-substitute a year. Headline = 24-month average (or most-recent in 1-yr mode).
     const declining = !oneYear && y1 < y2;
-    let finalMonthly, verdictSub;
-    if (oneYear) {
-      finalMonthly = recent;
-      verdictSub = 'One-year history — most recent year ÷ 12.';
-    } else if (declining) {
-      finalMonthly = recent;
-      verdictSub = 'Income declined year-over-year — using the most recent (lower) year. Document the trend.';
-    } else {
-      finalMonthly = avg24;
-      verdictSub = 'Stable or rising — 24-month average.';
-    }
+    const finalMonthly = oneYear ? recent : avg24;
 
     const v = $('verdict');
     if (finalMonthly <= 0) {
       v.className = 'verdict verdict-warn';
-      v.innerHTML = 'No positive income' + '<span class="v-sub">Adjusted income is zero or a loss — the loss must be deducted from qualifying income.</span>';
+      v.innerHTML = 'No positive income<span class="v-sub">Adjusted cash flow is zero or a loss \u2014 the loss must be deducted from qualifying income.</span>';
     } else {
+      const sub = oneYear
+        ? 'One-year history \u2014 most recent year \u00f7 12.'
+        : declining
+          ? 'Income declined year-over-year. 24-month average shown; underwriting may require the lower most-recent year \u2014 document the trend.'
+          : 'Stable or rising \u2014 24-month average.';
       v.className = 'verdict ' + (declining ? 'verdict-warn' : 'verdict-pass');
-      v.innerHTML = fmt(finalMonthly) + ' / mo' + '<span class="v-sub">' + verdictSub + '</span>';
+      v.innerHTML = fmt(finalMonthly) + ' / mo<span class="v-sub">' + sub + '</span>';
     }
 
     $('r-final').textContent = fmt(Math.max(0, finalMonthly));
-    $('r-progtag').textContent = PROGRAMS[PROG].name + ' · ' + PROGRAMS[PROG].tag;
+    $('r-progtag').textContent = 'Fannie Mae \u00b7 Form 1084';
 
     renderFlags({ y1, y2, declining, oneYear, ownPct, finalMonthly });
   }
 
   function renderFlags(s){
-    const box = $('flags');
-    box.innerHTML = '';
-    const add = (html, warn) => {
-      const d = document.createElement('div');
-      d.className = 'flag' + (warn ? ' warn' : '');
-      d.innerHTML = html;
-      box.appendChild(d);
-    };
+    const box = $('flags'); box.innerHTML = '';
+    const add = (html, warn) => { const d = document.createElement('div'); d.className = 'flag' + (warn ? ' warn' : ''); d.innerHTML = html; box.appendChild(d); };
     const cfg = STRUCTURES[STRUCT];
-    const prog = PROGRAMS[PROG];
 
-    if (s.oneYear && prog.twoYr) {
-      add('<b>' + prog.name + ' generally requires a 2-year self-employment history.</b> A one-year history is the exception and needs strong compensating factors and documentation.', true);
+    if (!s.oneYear && s.declining) {
+      add('<b>Declining income.</b> Fannie wants the lower, most-recent income analyzed and the decline documented as stable and likely to continue (B3-3.1-01). The most-recent-year figure is shown above.', true);
     }
-    if (s.declining) {
-      if (prog.twoYr) add('<b>Declining income.</b> ' + prog.name + ' generally requires the more conservative figure and a written explanation of the decline.', true);
-      else add('<b>Declining income.</b> ' + prog.name + ' allows the lower figure with documentation of the trend and its likelihood of continuing.', true);
+    if (s.oneYear) {
+      add('<b>One-year history.</b> Two years is the standard; a shorter history needs a combined history in the same field plus a written stability justification (B3-3.5-01).', true);
     }
-    if (cfg.ownership && s.ownPct > 0 && s.ownPct < 25) {
-      add('<b>Below 25% ownership.</b> Not treated as self-employed — income is generally handled as variable/secondary wage and the business returns may not be required.', true);
+    if (cfg.ownership && STRUCT !== 'ccorp' && s.ownPct > 0 && s.ownPct < 25) {
+      add('<b>Below 25% ownership.</b> Not treated as self-employed \u2014 handled under the &lt;25% K-1 rules (B3-3.4-19); the business returns may not be required.', true);
     }
-    if ((s.y1 < 0 || s.y2 < 0)) {
-      add('<b>A year shows a loss.</b> A business loss reduces qualifying income and may count against the borrower; confirm it isn\u2019t one-time.', true);
+    if (STRUCT === 'ccorp' && s.ownPct > 0 && s.ownPct < 100) {
+      add('<b>C-corp under 100% ownership.</b> Form 1084 uses 1120 corporate income only at 100% ownership. Below that, qualify on W-2 and documented dividends instead.', true);
     }
-    if ((STRUCT === 'partnership' || STRUCT === 'scorp')) {
-      add('<b>Distributions vs. liquidity.</b> ' + prog.name + ' generally expects K-1 ordinary income to be supported by adequate business liquidity (or actual distributions) before it counts. Verify before relying on the full share.');
+    if (s.y1 < 0 || s.y2 < 0) {
+      add('<b>A year shows a loss.</b> The loss reduces qualifying income and may offset other income; confirm it is not one-time before relying on any add-back.', true);
     }
-    if (STRUCT === 'ccorp') {
-      add('<b>C-corp access.</b> Corporate income only counts if the borrower can document access to the funds (typically a 100% owner) and the business can support distributions.');
+    if (STRUCT === 'partnership' || STRUCT === 'scorp') {
+      add('<b>Distributions vs. liquidity.</b> K-1 ordinary income counts only if it was actually distributed, or the business has the liquidity to support the withdrawal (Form 1084 instructions; Freddie 5304.1(e)). K-1 cash distributions are not themselves qualifying income.');
     }
     if (s.finalMonthly > 0 && !s.declining && !s.oneYear) {
-      add('Using the 24-month average. If you have a YTD P&amp;L showing continued income, keep it in the file to support stability.');
+      add('Using the 24-month average. Keep a YTD P&amp;L in the file to support continued stability.');
     }
   }
 
   // events
-  $('program-seg').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
-    $('program-seg').querySelectorAll('button').forEach(x => x.classList.remove('active'));
-    b.classList.add('active'); PROG = b.dataset.prog; calc();
-  }));
   $('structure').addEventListener('change', e => { STRUCT = e.target.value; renderLines(); });
   $('ownership').addEventListener('input', calc);
   $('year1').addEventListener('change', calc);
