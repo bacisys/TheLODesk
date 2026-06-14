@@ -101,11 +101,21 @@
 <section class="tool-page">
   <div class="container">
 
+    <div class="print-only print-header">
+      <div class="ph-left"><span class="ph-mark">D</span><div><div class="ph-name">The Desk</div><div class="ph-sub">By Check with Chuck</div></div></div>
+      <div class="ph-meta"><div class="ph-tool" id="print-tool"></div><div class="ph-date" id="print-date"></div></div>
+    </div>
+
     <div class="tool-page-head">
       <div class="breadcrumb"><a href="index.html">The Desk</a> · Income · <span style="color: var(--bone);">Self-Employed Income</span></div>
       <h1>Self-Employed <em>Income</em></h1>
       <p class="tool-lede">Qualifying income from the tax returns the way underwriting runs it — <strong style="color:var(--bone);">Schedule C, Partnership (1065), S-Corp (1120S), and C-Corp (1120)</strong> — using Fannie Mae <strong style="color:var(--bone);">Form 1084</strong> / Freddie Mac <strong style="color:var(--bone);">Form 91</strong> add-backs, then the averaging and flags for your loan program.</p>
     </div>
+
+    <button type="button" class="print-btn no-print" onclick="window.print()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Print / Save as PDF
+    </button>
 
     <div class="calc-grid">
       <div class="calc-input">
@@ -198,6 +208,9 @@
     </div>
 
   </div>
+  <div class="print-only print-foot">
+    <p><strong>Estimates only — not a loan approval, commitment to lend, or a Loan Estimate.</strong> Prepared by Charles Bacigalupi III, Mortgage Loan Originator, NMLS #1909129 · Barrett Financial Group, LLC, NMLS #181106. Licensed in AZ, CO, CA, TX, FL, WA, NJ. Equal Housing Opportunity.</p>
+  </div>
 </section>
 
 <footer class="site-footer">
@@ -237,6 +250,7 @@
 
 <script>
   document.getElementById('year').textContent = new Date().getFullYear();
+  (function(){ var d=document.getElementById('print-date'); if(d) d.textContent=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}); var t=document.getElementById('print-tool'), h=document.querySelector('.tool-page-head h1'); if(t&&h) t.textContent=h.textContent.replace(/\s+/g,' ').trim(); })();
   const $ = (id) => document.getElementById(id);
   const fmt = (n) => (n < 0 ? '-$' : '$') + Math.abs(Math.round(n)).toLocaleString('en-US');
 
