@@ -109,7 +109,7 @@
     <div class="tool-page-head">
       <div class="breadcrumb"><a href="index.html">The Desk</a> · Income · <span style="color: var(--bone);">Self-Employed Income</span></div>
       <h1>Self-Employed <em>Income</em></h1>
-      <p class="tool-lede">Qualifying income built line-for-line on Fannie Mae's <strong style="color:var(--bone);">Form 1084 — Cash Flow Analysis</strong>, for <strong style="color:var(--bone);">Schedule C, Partnership (1065), S-Corp (1120S), and C-Corp (1120)</strong>: the tax-return add-backs, ownership weighting, two-year averaging, and the flags underwriting looks for.</p>
+      <p class="tool-lede">Qualifying income built line-for-line on the agency cash-flow worksheet (Fannie Mae <strong style="color:var(--bone);">Form 1084</strong> / Freddie <strong style="color:var(--bone);">Form 91</strong>), for <strong style="color:var(--bone);">Schedule C, 1065, 1120S, and 1120</strong>. Pick the program \u2014 <strong style="color:var(--bone);">Fannie, Freddie, FHA, VA, or USDA</strong> \u2014 for the right averaging and rules; the tax-return add-backs are the same for all.</p>
     </div>
 
     <button type="button" class="print-btn no-print" onclick="window.print()">
@@ -122,11 +122,15 @@
         <h3>Inputs</h3>
         <p class="calc-sub">Pick the program and business type, then enter the line items for two years.</p>
 
-        <div class="subhead">Basis</div>
-        <div class="field" style="margin-bottom:6px;">
-          <span class="regime-tag">Fannie Mae · Form 1084</span>
-          <p class="field-hint">Cash Flow Analysis worksheet — every line below maps to a Form 1084 line. Freddie Mac (Form 91) is nearly identical and gets added as a toggle once that form is loaded.</p>
+        <div class="subhead">Loan program</div>
+        <div class="seg" id="program-seg">
+          <button data-prog="fannie" class="active" type="button">Fannie</button>
+          <button data-prog="freddie" type="button">Freddie</button>
+          <button data-prog="fha" type="button">FHA</button>
+          <button data-prog="va" type="button">VA</button>
+          <button data-prog="usda" type="button">USDA</button>
         </div>
+        <p class="field-hint" style="margin:-2px 0 6px;">Same Form 1084 add-backs for every program — the selector changes the <strong>averaging</strong> and the program-specific rules &amp; flags.</p>
 
         <div class="subhead">Business structure</div>
         <div class="field">
@@ -198,7 +202,7 @@
         <li><strong>Vehicle mileage</strong> (Form 1084 line 3d): when the standard mileage deduction is used, the depreciation portion is added back as <span class="formula">business miles \u00d7 the IRS factor</span> for that year \u2014 2026 = $0.35, 2025 = $0.33, 2024 = $0.30, 2023 = $0.28, 2022/2021 = $0.26.</li>
         <li><strong>Partnerships (1065) and S-corps (1120S):</strong> K-1 ordinary income, net rental, and guaranteed payments are already your share and are <em>not</em> weighted (lines 7 / 9). The business-return adjustments (depreciation, depletion, amortization, \u2212notes payable &lt;1yr, \u2212travel/entertainment) are summed and <span class="formula">\u00d7 your ownership %</span> (lines 8 / 10). S-corp adds your <strong>W-2</strong> from the entity.</li>
         <li><strong>C-corp (1120):</strong> taxable income \u2212 total tax + the add-backs \u2212 notes payable \u2212 travel/entertainment, then <strong>less dividends paid to you</strong>, used only when you own <span class="formula">100%</span> (line 11). Add your W-2 from the corporation.</li>
-        <li><strong>Averaging.</strong> The documented years are averaged over <span class="formula">24 months</span>. The guide calls for <em>analyzing</em> a rise or fall \u2014 not auto-substituting a year \u2014 so both the 24-month average and the most-recent year are shown, and a decline is flagged for you to document (B3-3.1-01; Freddie 5304.1(f)).</li>
+        <li><strong>Averaging by program (same add-backs, different combine).</strong> <span class="formula">Fannie, Freddie, VA, USDA</span> use the <span class="formula">24-month average</span> and analyze the trend (a decline is flagged to document, not auto-substituted). <span class="formula">FHA</span> instead qualifies on the <strong>lower</strong> of the 24-month average and the most-recent year (HUD 4000.1 II.A). VA adds a separate <strong>residual-income</strong> test; USDA splits <strong>repayment income</strong> (qualifying, with add-backs) from <strong>annual household income</strong> for the 115%-of-AMI eligibility cap.</li>
         <li><strong>K-1 distributions are not income.</strong> Ordinary income counts only if distributed or supported by business liquidity; cash distributions themselves establish access, not qualifying income (Form 1084 instructions; Freddie 5304.1(e)). Flags surface declines, &lt;25% ownership, loss years, and the distribution/liquidity test.</li>
       </ol>
       <p style="font-size:13px;color:var(--charcoal-300);line-height:1.6;margin-top:18px;">
@@ -308,6 +312,16 @@
     ]}
   };
 
+  // A program is a rule layer over the shared Form 1084 engine. Add-backs are identical;
+  // programs differ in how the two years are combined and in their flags / reminders.
+  const PROGRAMS = {
+    fannie:  { name:'Fannie Mae', tag:'Form 1084',          avg:'average', cite:'Form 1084 \u00b7 SG B3-3.6' },
+    freddie: { name:'Freddie Mac', tag:'Form 91',           avg:'average', cite:'Freddie 5304.1 \u00b7 Form 91' },
+    fha:     { name:'FHA', tag:'HUD 4000.1',                avg:'lesser',  cite:'HUD 4000.1 II.A \u00b7 Appx 2.0' },
+    va:      { name:'VA', tag:'M26-7 Ch.4',                 avg:'average', cite:'VA Lenders Handbook Ch.4' },
+    usda:    { name:'USDA', tag:'HB-1-3555 Ch.9',           avg:'average', cite:'USDA HB-1-3555 Ch.9' }
+  };
+  let PROG = 'fannie';
   let STRUCT = 'soleprop';
 
   // year selectors
@@ -377,10 +391,13 @@
     $('r-avg').textContent = oneYear ? 'n/a' : fmt(avg24);
     $('r-recent').textContent = fmt(recent);
 
-    // Form 1084 / Selling Guide: average the documented years; analyze fluctuation,
-    // do not auto-substitute a year. Headline = 24-month average (or most-recent in 1-yr mode).
+    // Add-backs are identical across programs; only the averaging differs.
+    // FHA = lower of the 24-mo average and the most-recent year (HUD 4000.1 II.A).
+    // All others = 24-month average, with fluctuation analyzed (not auto-substituted).
     const declining = !oneYear && y1 < y2;
-    const finalMonthly = oneYear ? recent : avg24;
+    const prog = PROGRAMS[PROG];
+    const finalMonthly = oneYear ? recent
+      : (prog.avg === 'lesser' ? Math.min(avg24, recent) : avg24);
 
     const v = $('verdict');
     if (finalMonthly <= 0) {
@@ -389,15 +406,17 @@
     } else {
       const sub = oneYear
         ? 'One-year history \u2014 most recent year \u00f7 12.'
-        : declining
-          ? 'Income declined year-over-year. 24-month average shown; underwriting may require the lower most-recent year \u2014 document the trend.'
-          : 'Stable or rising \u2014 24-month average.';
+        : prog.avg === 'lesser'
+          ? 'FHA uses the lower of the 24-month average and the most-recent year.'
+          : declining
+            ? 'Income declined year-over-year. 24-month average shown; underwriting may require the lower most-recent year \u2014 document the trend.'
+            : 'Stable or rising \u2014 24-month average.';
       v.className = 'verdict ' + (declining ? 'verdict-warn' : 'verdict-pass');
       v.innerHTML = fmt(finalMonthly) + ' / mo<span class="v-sub">' + sub + '</span>';
     }
 
     $('r-final').textContent = fmt(Math.max(0, finalMonthly));
-    $('r-progtag').textContent = 'Fannie Mae \u00b7 Form 1084';
+    $('r-progtag').textContent = prog.name + ' \u00b7 ' + prog.tag;
 
     renderFlags({ y1, y2, declining, oneYear, ownPct, finalMonthly });
   }
@@ -406,12 +425,24 @@
     const box = $('flags'); box.innerHTML = '';
     const add = (html, warn) => { const d = document.createElement('div'); d.className = 'flag' + (warn ? ' warn' : ''); d.innerHTML = html; box.appendChild(d); };
     const cfg = STRUCTURES[STRUCT];
+    const prog = PROGRAMS[PROG];
 
+    if (PROG === 'fha') {
+      add('<b>FHA averaging.</b> The qualifying figure is the <b>lower</b> of the 24-month average and the most-recent year (HUD 4000.1 II.A; add-backs per Appendix 2.0).');
+    }
+    if (PROG === 'va') {
+      add('<b>VA residual income.</b> Beyond this figure, VA requires a separate residual-income test \u2014 cash left after the payment, debts, and living expenses, by region and family size (Lenders Handbook Ch.4).', true);
+    }
+    if (PROG === 'usda') {
+      add('<b>USDA \u2014 two income figures.</b> This is <b>repayment income</b> (qualifying, with the add-backs). Separately compute <b>annual/adjusted household income</b> for all adult members against the 115%-of-AMI eligibility cap, where the add-backs are not required (HB-1-3555 Ch.9).', true);
+    }
     if (!s.oneYear && s.declining) {
-      add('<b>Declining income.</b> Fannie wants the lower, most-recent income analyzed and the decline documented as stable and likely to continue (B3-3.1-01). The most-recent-year figure is shown above.', true);
+      add(PROG === 'fha'
+        ? '<b>Declining income.</b> FHA already takes the lower most-recent year here; still document the decline as stable and likely to continue.'
+        : '<b>Declining income.</b> The 24-month average is shown; underwriting may require the lower most-recent year. Document the decline as stable and likely to continue (' + prog.cite + ').', true);
     }
     if (s.oneYear) {
-      add('<b>One-year history.</b> Two years is the standard; a shorter history needs a combined history in the same field plus a written stability justification (B3-3.5-01).', true);
+      add('<b>One-year history.</b> Two years is the standard across all five programs; a shorter history needs a combined history in the same field plus a written stability justification.', true);
     }
     if (cfg.ownership && STRUCT !== 'ccorp' && s.ownPct > 0 && s.ownPct < 25) {
       add('<b>Below 25% ownership.</b> Not treated as self-employed \u2014 handled under the &lt;25% K-1 rules (B3-3.4-19); the business returns may not be required.', true);
@@ -425,12 +456,16 @@
     if (STRUCT === 'partnership' || STRUCT === 'scorp') {
       add('<b>Distributions vs. liquidity.</b> K-1 ordinary income counts only if it was actually distributed, or the business has the liquidity to support the withdrawal (Form 1084 instructions; Freddie 5304.1(e)). K-1 cash distributions are not themselves qualifying income.');
     }
-    if (s.finalMonthly > 0 && !s.declining && !s.oneYear) {
-      add('Using the 24-month average. Keep a YTD P&amp;L in the file to support continued stability.');
+    if (s.finalMonthly > 0 && !s.declining && !s.oneYear && PROG !== 'fha') {
+      add('Keep a YTD P&amp;L in the file to support continued stability.');
     }
   }
 
   // events
+  $('program-seg').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    $('program-seg').querySelectorAll('button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active'); PROG = b.dataset.prog; calc();
+  }));
   $('structure').addEventListener('change', e => { STRUCT = e.target.value; renderLines(); });
   $('ownership').addEventListener('input', calc);
   $('year1').addEventListener('change', calc);
