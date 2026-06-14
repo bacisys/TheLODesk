@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VA Purchase Max Loan Calculator · The Desk</title>
+<meta name="description" content="VA purchase maximum loan calculator: required guaranty (tiered ≤$144k or 25%), available entitlement, guaranty-shortfall down payment, funding fee, note amount, and LTV. Current VA funding fee factors. Built for loan originators." />
+<meta name="robots" content="index, follow" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,ital,wght@9..144,0,300;9..144,0,400;9..144,0,500;9..144,1,300;9..144,1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="desk.css">
+
+<style>
+  .calc-input select {
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23aab0bc' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 16px center; padding-right: 38px;
+  }
+  .input-wrap.with-suffix::after {
+    content: attr(data-suffix); position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+    font-family: var(--body); font-size: 14px; color: var(--charcoal-300); pointer-events: none;
+  }
+  .input-wrap.with-suffix input { padding-right: 46px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 520px) { .field-row { grid-template-columns: 1fr; } }
+
+  .check-toggle { display: flex; align-items: flex-start; gap: 10px; margin: 4px 0 18px; }
+  .check-toggle input { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--warm); }
+  .check-toggle label { font-size: 14px; color: var(--charcoal-200); line-height: 1.5; cursor: pointer; }
+
+  .subhead {
+    font-family: var(--body); font-size: 12px; font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--warm); margin: 28px 0 14px; padding-top: 22px; border-top: 1px solid var(--line);
+  }
+  .subhead:first-of-type { border-top: none; padding-top: 0; margin-top: 8px; }
+  .is-hidden { display: none !important; }
+
+  .verdict { margin: 18px 0 8px; padding: 18px 20px; border-radius: 12px; text-align: center; font-family: var(--display); font-size: 19px; line-height: 1.4; }
+  .verdict-pass { background: var(--positive-soft); color: var(--positive); border: 1px solid var(--positive); }
+  .verdict-warn { background: var(--caution-soft); color: var(--caution); border: 1px solid var(--caution); }
+  .verdict .v-sub { display: block; font-family: var(--body); font-size: 13px; font-weight: 400; margin-top: 6px; color: var(--charcoal-200); }
+  .regime-tag { font-family: var(--body); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--warm-bright); }
+
+  .ff-note { font-size: 12.5px; color: var(--charcoal-300); line-height: 1.55; margin-top: 10px; }
+  .ff-note a { color: var(--warm-bright); }
+</style>
+</head>
+<body>
+
+<div class="top-banner">
+  <div class="container">
+    <div class="badges">
+      <span class="badge"><span class="eho-icon"></span> Equal Housing Opportunity</span>
+      <span class="badge">NMLS #1909129</span>
+      <span class="badge">Barrett Financial Group · NMLS #181106</span>
+    </div>
+    <div>For licensed mortgage professionals · Educational use</div>
+  </div>
+</div>
+
+<header class="nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="brand">
+      <div class="brand-mark">D</div>
+      <div class="brand-text">
+        <div class="brand-name">The Desk</div>
+        <div class="brand-sub">By Check with Chuck</div>
+      </div>
+    </a>
+    <nav class="nav-links">
+      <a href="index.html#tools">Tools</a>
+      <a href="index.html#reference">Reference</a>
+      <a href="index.html#scenarios">Scenarios</a>
+      <a href="index.html#about">About</a>
+    </nav>
+    <a href="https://www.charlesbacigalupi.com" class="nav-back">← checkwithchuck.com</a>
+  </div>
+</header>
+
+<section class="tool-page">
+  <div class="container">
+
+    <div class="tool-page-head">
+      <div class="breadcrumb"><a href="index.html">The Desk</a> · VA Loans · <span style="color: var(--bone);">Purchase Max Loan</span></div>
+      <h1>VA Purchase <em>Max Loan</em></h1>
+      <p class="tool-lede">Full max-loan math the way underwriting runs it: required guaranty (tiered for notes ≤ $144,000, flat 25% above), available entitlement, the <strong style="color:var(--bone);">down payment owed on any guaranty shortfall</strong>, funding fee, and the resulting <strong style="color:var(--bone);">note amount and LTV</strong>. Funding fee factors are current VA figures.</p>
+    </div>
+
+    <div class="calc-grid">
+      <div class="calc-input">
+        <h3>Inputs</h3>
+        <p class="calc-sub">Purchase price, value, entitlement, and the funding fee scenario.</p>
+
+        <div class="subhead">Property &amp; price</div>
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label" for="price">Sales price</label>
+            <div class="input-wrap with-prefix" data-prefix="$"><input type="number" id="price" value="450000" step="1000" min="0"></div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="appraised">Appraised value</label>
+            <div class="input-wrap with-prefix" data-prefix="$"><input type="number" id="appraised" value="450000" step="1000" min="0"></div>
+            <p class="field-hint">The lesser of price and value drives the math.</p>
+          </div>
+        </div>
+
+        <div class="subhead">Entitlement</div>
+        <div class="check-toggle">
+          <input type="checkbox" id="full-ent" checked>
+          <label for="full-ent"><strong>Full entitlement</strong> — no prior VA loan in place, or prior entitlement fully restored. Removes the county-limit cap (post-2020 Blue Water Act): no down payment regardless of loan size.</label>
+        </div>
+        <div id="partial-fields" class="is-hidden">
+          <div class="field">
+            <label class="field-label" for="county-limit">County loan limit</label>
+            <div class="presets">
+              <button class="preset" data-limit="832750" type="button">Baseline · $832,750</button>
+              <button class="preset" data-limit="1249125" type="button">Ceiling · $1,249,125</button>
+            </div>
+            <div class="input-wrap with-prefix" data-prefix="$"><input type="number" id="county-limit" value="832750" step="1000" min="0"></div>
+            <p class="field-hint">2026 FHFA one-unit limit for the subject county. Only applies to partial/second-tier entitlement.</p>
+          </div>
+          <div class="field">
+            <label class="field-label" for="prior-ent">Previously used entitlement (not restorable)</label>
+            <div class="input-wrap with-prefix" data-prefix="$"><input type="number" id="prior-ent" value="0" step="1000" min="0"></div>
+            <p class="field-hint">Guaranty dollars tied up on a prior VA loan — roughly 25% of that loan's balance.</p>
+          </div>
+        </div>
+
+        <div class="subhead">VA funding fee</div>
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label" for="vet-use">Use</label>
+            <select id="vet-use">
+              <option value="first" selected>First use</option>
+              <option value="subsequent">Subsequent use</option>
+              <option value="exempt">Exempt (0%)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="dp-bracket">Down payment bracket</label>
+            <select id="dp-bracket">
+              <option value="lt5" selected>Less than 5%</option>
+              <option value="mid">5% – 9.99%</option>
+              <option value="gte10">10% or more</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="ff-factor">Funding fee factor <span style="text-transform:none;letter-spacing:0;color:var(--charcoal-500);font-weight:400;">— auto-filled, editable</span></label>
+          <div class="input-wrap with-suffix" data-suffix="%"><input type="number" id="ff-factor" value="2.15" step="0.001" min="0"></div>
+          <p class="ff-note">Current VA figures (loans closed on/after 4/7/2023, Circular 26-23-06). The bracket above sets this automatically; override if your scenario differs. Verify at <a href="https://www.benefits.va.gov/homeloans/purchaseco_loan_fee.asp" target="_blank" rel="noopener">VA.gov funding fee chart</a>.</p>
+        </div>
+        <div class="check-toggle">
+          <input type="checkbox" id="finance-ff" checked>
+          <label for="finance-ff">Finance the funding fee into the loan (most common). Unchecked = paid in cash at closing.</label>
+        </div>
+      </div>
+
+      <div>
+        <div class="result-panel">
+          <span class="eyebrow">Results</span>
+          <h3>Max loan &amp; down payment</h3>
+
+          <div class="result-row">
+            <span class="result-label">Lesser of price / value</span>
+            <span class="result-value" id="r-lesser">$—</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">Required guaranty <span class="regime-tag" id="r-regime"></span></span>
+            <span class="result-value" id="r-required">$—</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">Available guaranty</span>
+            <span class="result-value" id="r-available">$—</span>
+          </div>
+
+          <div class="verdict" id="verdict"></div>
+
+          <div class="result-row">
+            <span class="result-label">Base loan amount</span>
+            <span class="result-value" id="r-base">$—</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">VA funding fee (<span id="r-ffpct">2.15</span>%)</span>
+            <span class="result-value" id="r-ff">$—</span>
+          </div>
+          <div class="result-row headline">
+            <span class="result-label">Total note / max loan</span>
+            <span class="result-value" id="r-note">$—</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">Total LTV</span>
+            <span class="result-value" id="r-ltv">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="math-notes">
+      <h4>The math &amp; the rule</h4>
+      <ol class="math-list">
+        <li>Base value <span class="formula">= lesser of sales price and appraised value</span>.</li>
+        <li>Required guaranty is taken on the value <em>plus the financed funding fee</em>. For a note <span class="formula">≤ $144,000</span> it is tiered — <span class="formula">50% up to $45,000; flat $22,500 from $45,001–$56,250; 40% above, capped at $36,000</span>. For a note <span class="formula">&gt; $144,000</span> it is a flat <span class="formula">25%</span>.</li>
+        <li>Available guaranty <span class="formula">= 25% × county loan limit − previously-used entitlement</span> (≤$144k uses $144,000, so a flat $36,000 with no bonus). <strong>Full entitlement</strong> removes the county cap entirely — VA guarantees 25% at any loan size, so there is no shortfall.</li>
+        <li>Down payment <span class="formula">= required guaranty − available guaranty</span>, when positive. This is the guaranty shortfall the Veteran must cover.</li>
+        <li>Base loan <span class="formula">= lesser value − down payment</span>; funding fee <span class="formula">= base loan × factor</span>; note amount <span class="formula">= base loan + financed funding fee</span>; LTV <span class="formula">= note ÷ lesser value</span>.</li>
+        <li>Funding fee factors current per VA Circular 26-23-06 (loans closed on/after 4/7/2023): purchase first use 2.15% / subsequent 3.30% at &lt;5% down, 1.50% at 5–9.99%, 1.25% at 10%+; exempt 0%.</li>
+      </ol>
+      <p style="font-size:13px;color:var(--charcoal-300);line-height:1.6;margin-top:18px;">
+        Estimates only. Your AUS findings, the VA Certificate of Eligibility, investor overlays, and lender max loan amount are authoritative. Closing costs and prepaids are separate from the down payment shown here. Confirm current funding fee factors and county limits before relying on a figure.
+      </p>
+    </div>
+
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <h4>The Desk</h4>
+        <p>A working toolkit for loan originators. Curated by Charles Bacigalupi III, NMLS #1909129, at Barrett Financial Group, LLC, NMLS #181106.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Categories</h5>
+        <ul>
+          <li><a href="index.html#tools">VA Loans</a></li>
+          <li><a href="index.html#tools">Income Analysis</a></li>
+          <li><a href="index.html#tools">Qualifying &amp; DTI</a></li>
+          <li><a href="index.html#tools">Refinance</a></li>
+          <li><a href="index.html#reference">Reference Tables</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://www.charlesbacigalupi.com">checkwithchuck.com</a></li>
+          <li><a href="https://www.linkedin.com/in/charles-bacigalupi-iii/">LinkedIn</a></li>
+          <li><a href="https://www.barrettfinancial.com">Barrett Financial</a></li>
+          <li><a href="mailto:charlesb@barrettfinancial.com">Email Chuck</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-compliance">
+      <p><strong style="color: var(--bone);">For licensed mortgage professionals.</strong> The Desk is an educational toolkit. Calculators are estimates only and do not constitute a loan approval, commitment to lend, or a substitute for a Loan Estimate. Use your AUS findings and program guidelines as authoritative.</p>
+      <p>Charles Peter Bacigalupi III · Mortgage Loan Originator · NMLS #1909129. Powered by Barrett Financial Group, LLC · NMLS #181106 · 2701 East Insight Way, Suite 150, Chandler, AZ 85286. Licensed in AZ, CO, CA, TX, FL, WA, NJ. Equal Housing Opportunity.</p>
+      <p class="small">© <span id="year">2026</span> The Desk · checkwithchuck.com</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+  const $ = (id) => document.getElementById(id);
+  const fmt = (n) => '$' + Math.round(n).toLocaleString('en-US');
+  const fmt2 = (n) => n.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+  // Current VA funding fee factors — loans closed on/after 4/7/2023 (Circular 26-23-06)
+  const FF = {
+    first:      { lt5: 2.15, mid: 1.50, gte10: 1.25 },
+    subsequent: { lt5: 3.30, mid: 1.50, gte10: 1.25 },
+    exempt:     { lt5: 0,    mid: 0,    gte10: 0 }
+  };
+
+  function syncFactor() {
+    const use = $('vet-use').value, dp = $('dp-bracket').value;
+    $('ff-factor').value = FF[use][dp];
+    $('dp-bracket').disabled = (use === 'exempt');
+  }
+
+  function calc() {
+    const price = parseFloat($('price').value) || 0;
+    const appraised = parseFloat($('appraised').value) || 0;
+    const lesser = Math.min(price, appraised);
+    const fullEnt = $('full-ent').checked;
+    const countyLimit = parseFloat($('county-limit').value) || 0;
+    const priorEnt = parseFloat($('prior-ent').value) || 0;
+    const factor = (parseFloat($('ff-factor').value) || 0) / 100;
+    const financeFF = $('finance-ff').checked;
+
+    // Initial funding fee estimate on the lesser value (worksheet section 1)
+    const ffEst = lesser * factor;
+    const financedEst = financeFF ? ffEst : 0;
+    const coverageBase = lesser + financedEst;
+
+    // Required guaranty — tiered (<=144k) or flat 25% (>144k)
+    let required, regime;
+    if (coverageBase <= 144000) {
+      regime = '≤ $144k · tiered';
+      let tier;
+      if (coverageBase <= 45000) tier = coverageBase * 0.5;
+      else if (coverageBase <= 56250) tier = 22500;
+      else tier = coverageBase * 0.4;
+      required = Math.min(tier, 36000);
+    } else {
+      regime = '> $144k · 25%';
+      required = coverageBase * 0.25;
+    }
+
+    // Available guaranty + shortfall
+    let available, shortfall;
+    if (fullEnt) {
+      available = required;        // 25% guaranteed at any size, no county cap
+      shortfall = 0;
+    } else {
+      const maxPot = (coverageBase <= 144000 ? 144000 : countyLimit) * 0.25;
+      available = maxPot - priorEnt;
+      shortfall = Math.max(0, required - available);
+    }
+
+    // Rebuild base, funding fee, note, LTV (worksheet section 3-4)
+    const base = lesser - shortfall;
+    const ffDollar = base * factor;
+    const financedFF = financeFF ? ffDollar : 0;
+    const note = base + financedFF;
+    const ltv = lesser > 0 ? (note / lesser) * 100 : 0;
+
+    $('r-lesser').textContent = fmt(lesser);
+    $('r-regime').textContent = regime;
+    $('r-required').textContent = fmt(required);
+    $('r-available').textContent = fullEnt ? 'Full — no cap' : fmt(available);
+    $('r-base').textContent = fmt(base);
+    $('r-ffpct').textContent = (factor * 100).toFixed(2).replace(/\.?0+$/, '');
+    $('r-ff').textContent = financeFF ? fmt(ffDollar) : fmt(ffDollar) + ' (cash)';
+    $('r-note').textContent = fmt(note);
+    $('r-ltv').textContent = fmt2(ltv) + '%';
+
+    const v = $('verdict');
+    if (shortfall > 0) {
+      v.className = 'verdict verdict-warn';
+      v.innerHTML = 'Down payment required: ' + fmt(shortfall) +
+        '<span class="v-sub">Guaranty shortfall — the Veteran must bring this to cover required coverage above available entitlement.</span>';
+    } else {
+      v.className = 'verdict verdict-pass';
+      v.innerHTML = 'Zero down payment' +
+        '<span class="v-sub">Available guaranty covers the requirement. Note amount below reflects the financed funding fee.</span>';
+    }
+  }
+
+  function togglePartial() {
+    $('partial-fields').classList.toggle('is-hidden', $('full-ent').checked);
+    calc();
+  }
+
+  ['vet-use','dp-bracket'].forEach(id => $(id).addEventListener('change', () => { syncFactor(); calc(); }));
+  ['price','appraised','county-limit','prior-ent','ff-factor','finance-ff'].forEach(id => {
+    $(id).addEventListener('input', calc); $(id).addEventListener('change', calc);
+  });
+  $('full-ent').addEventListener('change', togglePartial);
+  document.querySelectorAll('.preset').forEach(b => b.addEventListener('click', () => {
+    $('county-limit').value = b.dataset.limit; calc();
+  }));
+
+  syncFactor();
+  calc();
+</script>
+
+</body>
+</html>
