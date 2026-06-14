@@ -751,13 +751,13 @@ footer.site-footer {
 .print-modal-actions .pm-go { background: var(--warm); border-color: var(--warm-bright); color: var(--bone); }
 
 @media print {
-  @page { size: portrait; margin: 0.4in; }
+  @page { size: portrait; margin: 0.35in; }
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  html, body { background:#fff !important; color:#1b1b1b !important; font-size: 9pt !important; }
+  html, body { background:#fff !important; color:#1b1b1b !important; font-size: 8pt !important; line-height: 1.25 !important; }
 
   .top-banner, .nav, .site-footer, .no-print, .math-notes,
   .breadcrumb, .tool-lede, .field-hint, .ff-note, .calc-sub,
-  .presets, .print-modal { display:none !important; }
+  .presets, .print-modal, .print-empty { display:none !important; }
 
   .print-only { display:block !important; }
   .print-header { display:flex !important; }
@@ -765,61 +765,63 @@ footer.site-footer {
   .tool-page { padding:0 !important; }
   .tool-page .container, .container { max-width:100% !important; padding:0 !important; }
 
-  .tool-page-head { margin:0 0 5pt !important; }
-  .tool-page-head h1 { color:#1b1b1b !important; font-size:15pt !important; margin:0 !important; }
+  .tool-page-head { margin:0 0 4pt !important; }
+  .tool-page-head h1 { color:#1b1b1b !important; font-size:13pt !important; margin:0 !important; line-height:1.1 !important; }
   .tool-page-head h1 em { color:#a4733f !important; font-style:italic; }
 
   /* two-column compact layout */
-  .calc-grid { display:grid !important; grid-template-columns: 1fr 1fr !important; gap:10pt !important; align-items:start; }
+  .calc-grid { display:grid !important; grid-template-columns: 1fr 1fr !important; gap:9pt !important; align-items:start; }
   .calc-input, .result-panel {
     background:#fff !important; color:#1b1b1b !important;
     border:1px solid #bcbcbc !important; border-radius:4pt !important;
-    box-shadow:none !important; padding:8pt !important; margin:0 !important;
+    box-shadow:none !important; padding:6pt 7pt !important; margin:0 !important;
   }
-  .calc-input h3, .result-panel h3 { color:#1b1b1b !important; font-size:11pt !important; margin:0 0 4pt !important; }
+  .calc-input h3, .result-panel h3 { color:#1b1b1b !important; font-size:10pt !important; margin:0 0 3pt !important; }
 
-  .subhead { color:#a4733f !important; border-top:none !important; padding-top:5pt !important; margin:7pt 0 3pt !important; font-size:7.5pt !important; }
-  .subhead:first-of-type { margin-top:2pt !important; padding-top:0 !important; }
-  .field-label, .line-label, .result-label, .yh-label, .check-toggle label { color:#333 !important; font-size:8.5pt !important; }
-  .line-label small { color:#777 !important; font-size:7pt !important; }
-  .eyebrow, .result-panel .eyebrow { color:#a4733f !important; font-size:7.5pt !important; }
-  .result-value { color:#1b1b1b !important; font-size:10pt !important; }
-  .result-row.headline .result-value { font-size:12pt !important; }
+  .subhead { color:#a4733f !important; border-top:none !important; padding-top:4pt !important; margin:5pt 0 2pt !important; font-size:7pt !important; }
+  .subhead:first-of-type { margin-top:1pt !important; padding-top:0 !important; }
+  .field-label, .line-label, .result-label, .yh-label, .check-toggle label { color:#333 !important; font-size:8pt !important; }
+  .line-label small { color:#777 !important; font-size:6.5pt !important; }
+  .eyebrow, .result-panel .eyebrow { color:#a4733f !important; font-size:7pt !important; }
+  .result-value { color:#1b1b1b !important; font-size:9.5pt !important; }
+  .result-row.headline .result-value { font-size:11.5pt !important; }
   .regime-tag { color:#a4733f !important; }
 
-  .field, .check-toggle { margin:0 0 3pt !important; }
-  .result-row, .line-row { padding:2pt 0 !important; }
+  .field, .check-toggle { margin:0 0 2pt !important; }
+  .check-toggle { margin-top:4pt !important; }
+  .result-row, .line-row { padding:1.5pt 0 !important; }
   .result-row { border-bottom:1px solid #e8e8e8 !important; }
+  .year-head { margin-bottom:2pt !important; }
 
   input, select, .mini-input {
     background:#fff !important; color:#1b1b1b !important;
-    border:1px solid #bcbcbc !important; padding:2pt 5pt !important;
-    font-size:9pt !important; min-height:0 !important; height:auto !important;
+    border:1px solid #bcbcbc !important; padding:1.5pt 4pt !important;
+    font-size:8.5pt !important; min-height:0 !important; height:auto !important;
   }
-  .input-wrap input { padding:2pt 5pt !important; }
+  .input-wrap input { padding:1.5pt 4pt !important; }
   .seg { gap:3pt !important; }
-  .seg button { background:#fff !important; color:#555 !important; border:1px solid #ccc !important; padding:3pt !important; font-size:8pt !important; }
+  .seg button { background:#fff !important; color:#555 !important; border:1px solid #ccc !important; padding:2.5pt !important; font-size:7.5pt !important; }
   .seg button.active { background:#ececec !important; color:#1b1b1b !important; border-color:#888 !important; font-weight:700; }
 
-  .verdict { background:#f2f2f2 !important; color:#1b1b1b !important; border:1px solid #999 !important; padding:6pt !important; margin:6pt 0 !important; font-size:12pt !important; }
-  .verdict .v-sub { color:#444 !important; font-size:8pt !important; }
+  .verdict { background:#f2f2f2 !important; color:#1b1b1b !important; border:1px solid #999 !important; padding:5pt !important; margin:4pt 0 !important; font-size:11pt !important; }
+  .verdict .v-sub { color:#444 !important; font-size:7.5pt !important; }
   .verdict-pass { background:#eef6ea !important; border-color:#7fb069 !important; }
   .verdict-warn { background:#fbf0ec !important; border-color:#d4856b !important; }
 
-  .flags { margin-top:6pt !important; gap:3pt !important; }
-  .flag { background:#fafafa !important; color:#333 !important; border:1px solid #ddd !important; font-size:7.5pt !important; padding:4pt 6pt !important; }
+  .flags { margin-top:5pt !important; gap:2pt !important; }
+  .flag { background:#fafafa !important; color:#333 !important; border:1px solid #ddd !important; font-size:7pt !important; padding:3pt 5pt !important; line-height:1.3 !important; }
   .flag b { color:#1b1b1b !important; }
 
-  .print-header { justify-content:space-between; align-items:flex-start; border-bottom:1.5pt solid #a4733f; padding-bottom:5pt; margin-bottom:6pt; }
+  .print-header { justify-content:space-between; align-items:flex-start; border-bottom:1.5pt solid #a4733f; padding-bottom:4pt; margin-bottom:5pt; }
   .print-header .ph-left { display:flex; align-items:center; }
-  .print-header .ph-mark { display:inline-flex; align-items:center; justify-content:center; width:24pt; height:24pt; border:1.2pt solid #a4733f; color:#a4733f; font-family:'Fraunces',Georgia,serif; font-size:13pt; border-radius:3pt; margin-right:6pt; }
-  .print-header .ph-name { font-family:'Fraunces',Georgia,serif; font-size:12pt; color:#1b1b1b; line-height:1.1; }
-  .print-header .ph-sub { font-size:6.5pt; letter-spacing:0.12em; text-transform:uppercase; color:#a4733f; }
+  .print-header .ph-mark { display:inline-flex; align-items:center; justify-content:center; width:22pt; height:22pt; border:1.2pt solid #a4733f; color:#a4733f; font-family:'Fraunces',Georgia,serif; font-size:12pt; border-radius:3pt; margin-right:6pt; }
+  .print-header .ph-name { font-family:'Fraunces',Georgia,serif; font-size:11pt; color:#1b1b1b; line-height:1.05; }
+  .print-header .ph-sub { font-size:6pt; letter-spacing:0.12em; text-transform:uppercase; color:#a4733f; }
   .print-header .ph-meta { text-align:right; }
-  .print-header .ph-tool { font-size:9.5pt; font-weight:600; color:#1b1b1b; }
-  .print-header .ph-file { font-size:8.5pt; color:#1b1b1b; font-weight:500; }
-  .print-header .ph-date { font-size:8pt; color:#666; }
+  .print-header .ph-tool { font-size:9pt; font-weight:600; color:#1b1b1b; }
+  .print-header .ph-file { font-size:8pt; color:#1b1b1b; font-weight:500; }
+  .print-header .ph-date { font-size:7.5pt; color:#666; }
 
-  .print-foot { margin-top:8pt; border-top:1pt solid #bcbcbc; padding-top:5pt; font-size:7pt; line-height:1.4; color:#555 !important; }
+  .print-foot { margin-top:6pt; border-top:1pt solid #bcbcbc; padding-top:4pt; font-size:6.5pt; line-height:1.35; color:#555 !important; }
   .print-foot strong { color:#1b1b1b !important; }
 }

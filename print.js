@@ -1,7 +1,8 @@
 /* The Desk — shared print helper.
    Populates the print header (tool name + date), intercepts the Print button to
    collect an optional borrower last name + file number, stamps them on the
-   printout header, then prints. Falls back to plain window.print() if not loaded. */
+   printout header, hides empty input rows, then prints. Falls back to plain
+   window.print() if not loaded. */
 (function () {
   var lastName = '', fileNo = '', modal = null;
   function byId(id) { return document.getElementById(id); }
@@ -33,6 +34,30 @@
     if (fileNo) parts.push('File #' + fileNo);
     slot.textContent = parts.join('  \u00b7  ');
     slot.style.display = parts.length ? '' : 'none';
+  }
+
+  /* Hide empty add-back / line-item rows (and any subhead left with no rows)
+     so a sparsely-filled worksheet collapses onto one page. */
+  function markEmptyRows() {
+    document.querySelectorAll('.line-row').forEach(function (row) {
+      var filled = false;
+      row.querySelectorAll('input').forEach(function (i) {
+        var v = parseFloat(i.value);
+        if (!isNaN(v) && v !== 0) filled = true;
+      });
+      row.classList.toggle('print-empty', !filled);
+    });
+    document.querySelectorAll('.calc-input .subhead').forEach(function (sub) {
+      var n = sub.nextElementSibling, sawRow = false, anyVisible = false;
+      while (n && !n.classList.contains('subhead')) {
+        if (n.classList.contains('line-row')) {
+          sawRow = true;
+          if (!n.classList.contains('print-empty')) anyVisible = true;
+        }
+        n = n.nextElementSibling;
+      }
+      sub.classList.toggle('print-empty', sawRow && !anyVisible);
+    });
   }
 
   function build() {
@@ -79,6 +104,7 @@
 
   function init() {
     setHeaderMeta();
+    window.addEventListener('beforeprint', markEmptyRows);
     document.addEventListener('click', function (e) {
       var b = e.target.closest && e.target.closest('.print-btn');
       if (!b) return;
