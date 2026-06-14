@@ -109,9 +109,9 @@
         <div class="subhead">Entitlement</div>
         <div class="check-toggle">
           <input type="checkbox" id="full-ent" checked>
-          <label for="full-ent"><strong>Full entitlement</strong> — max guaranty is 25% of the loan amount, with no county-limit cap (post-2020 Blue Water Act). Uncheck for <strong>partial / second-tier</strong> entitlement, which caps the guaranty at 25% of the county loan limit. Previously-used entitlement still reduces what's available either way.</label>
+          <label for="full-ent"><strong>Full entitlement</strong> — no VA loan currently in place and no unrestored prior use (never used, or used and fully restored). VA guarantees 25% of the loan at any amount (post-2020 Blue Water Act), so no VA-required down payment. Uncheck for <strong>partial / remaining</strong> entitlement — an active or unrestored prior VA loan.</label>
         </div>
-        <div id="county-field" class="is-hidden">
+        <div id="partial-fields" class="is-hidden">
           <div class="field">
             <label class="field-label" for="county-limit">County loan limit</label>
             <div class="presets">
@@ -119,13 +119,13 @@
               <button class="preset" data-limit="1249125" type="button">Ceiling · $1,249,125</button>
             </div>
             <div class="input-wrap with-prefix" data-prefix="$"><input type="number" id="county-limit" value="832750" step="1000" min="0"></div>
-            <p class="field-hint">2026 FHFA one-unit limit for the subject county. Used only for partial/second-tier entitlement.</p>
+            <p class="field-hint">2026 FHFA one-unit limit for the subject county. Sizes the remaining bonus entitlement.</p>
           </div>
-        </div>
-        <div class="field">
-          <label class="field-label" for="prior-ent">Previously used entitlement (not restorable)</label>
-          <div class="input-wrap with-prefix" data-prefix="$"><input type="number" id="prior-ent" value="0" step="1000" min="0"></div>
-          <p class="field-hint">Guaranty dollars tied up on a prior VA loan that isn't restored — roughly 25% of that loan's balance. Leave $0 for a true first/full use. Reduces available guaranty and can force a down payment even with full entitlement.</p>
+          <div class="field">
+            <label class="field-label" for="prior-ent">Entitlement already used (charged on COE, not restored)</label>
+            <div class="input-wrap with-prefix" data-prefix="$"><input type="number" id="prior-ent" value="0" step="1000" min="0"></div>
+            <p class="field-hint">Guaranty dollars tied up on a prior VA loan — roughly 25% of that loan's balance, per the Certificate of Eligibility.</p>
+          </div>
         </div>
 
         <div class="subhead">VA funding fee</div>
@@ -203,7 +203,7 @@
       <ol class="math-list">
         <li>Base value <span class="formula">= lesser of sales price and appraised value</span>.</li>
         <li>Required guaranty is taken on the value <em>plus the financed funding fee</em>. For a note <span class="formula">≤ $144,000</span> it is tiered — <span class="formula">50% up to $45,000; flat $22,500 from $45,001–$56,250; 40% above, capped at $36,000</span>. For a note <span class="formula">&gt; $144,000</span> it is a flat <span class="formula">25%</span>.</li>
-        <li>Available guaranty <span class="formula">= max potential guaranty − previously-used entitlement</span>. Max potential guaranty is <span class="formula">25% × $144,000 ($36,000)</span> for notes ≤ $144k, <span class="formula">25% × loan amount</span> for full entitlement above $144k, or <span class="formula">25% × county loan limit</span> for partial entitlement. Previously-used entitlement reduces it in every case — so a Veteran with full entitlement but unrestored prior use can still owe a down payment.</li>
+        <li>Available guaranty: with <strong>full entitlement</strong>, VA guarantees 25% of the loan at any amount — no county cap, no down payment. With <strong>partial / remaining</strong> entitlement, available <span class="formula">= 25% × county loan limit − entitlement already used</span> (notes ≤ $144k use $144,000 → the $36,000 basic entitlement). Full entitlement and unrestored prior use are mutually exclusive.</li>
         <li>Down payment <span class="formula">= required guaranty − available guaranty</span>, when positive. This is the guaranty shortfall the Veteran must cover.</li>
         <li>Base loan <span class="formula">= lesser value − down payment</span>; funding fee <span class="formula">= base loan × factor</span>; note amount <span class="formula">= base loan + financed funding fee</span>; LTV <span class="formula">= note ÷ lesser value</span>.</li>
         <li>Funding fee factors current per VA Circular 26-23-06 (loans closed on/after 4/7/2023): purchase first use 2.15% / subsequent 3.30% at &lt;5% down, 1.50% at 5–9.99%, 1.25% at 10%+; exempt 0%.</li>
@@ -299,14 +299,18 @@
       required = coverageBase * 0.25;
     }
 
-    // Available guaranty + shortfall (worksheet row 12-16)
-    // ≤$144k: basic entitlement, max guaranty = 25% × $144,000 = $36,000.
-    // >$144k full entitlement: 25% of the loan amount (no county cap).
-    // >$144k partial: 25% of the county loan limit. Previously-used reduces all cases.
-    const guarantyBase = (coverageBase <= 144000) ? 144000 : (fullEnt ? coverageBase : countyLimit);
-    const maxPot = guarantyBase * 0.25;
-    const available = maxPot - priorEnt;
-    const shortfall = Math.max(0, required - available);
+    // Available guaranty + shortfall (bonus / remaining entitlement)
+    // Full entitlement: VA guarantees 25% of the loan at any size — no down payment.
+    // Partial: available = 25% × county limit − entitlement already used; shortfall = down payment.
+    let available, shortfall;
+    if (fullEnt) {
+      available = required;
+      shortfall = 0;
+    } else {
+      const maxPot = (coverageBase <= 144000 ? 144000 : countyLimit) * 0.25;
+      available = maxPot - priorEnt;
+      shortfall = Math.max(0, required - available);
+    }
 
     // Rebuild base, funding fee, note, LTV (worksheet section 3-4)
     const base = lesser - shortfall;
@@ -318,7 +322,7 @@
     $('r-lesser').textContent = fmt(lesser);
     $('r-regime').textContent = regime;
     $('r-required').textContent = fmt(required);
-    $('r-available').textContent = fmt(available);
+    $('r-available').textContent = fullEnt ? fmt(available) + ' · 25%, no cap' : fmt(available);
     $('r-base').textContent = fmt(base);
     $('r-ffpct').textContent = (factor * 100).toFixed(2).replace(/\.?0+$/, '');
     $('r-ff').textContent = financeFF ? fmt(ffDollar) : fmt(ffDollar) + ' (cash)';
@@ -338,7 +342,7 @@
   }
 
   function togglePartial() {
-    $('county-field').classList.toggle('is-hidden', $('full-ent').checked);
+    $('partial-fields').classList.toggle('is-hidden', $('full-ent').checked);
     calc();
   }
 
