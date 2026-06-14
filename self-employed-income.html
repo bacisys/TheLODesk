@@ -64,6 +64,15 @@
   .flag.warn { border-color: var(--caution); }
   .is-hidden { display: none !important; }
   .regime-tag { font-family: var(--body); font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--warm-bright); }
+
+  .supp-block { margin: 18px 0 2px; border-top: 1px solid var(--line); padding-top: 16px; }
+  .supp-block > summary {
+    list-style: none; cursor: pointer; font-family: var(--body); font-size: 13px; font-weight: 600;
+    letter-spacing: 0.04em; color: var(--warm); display: flex; align-items: baseline; gap: 8px;
+  }
+  .supp-block > summary::-webkit-details-marker { display: none; }
+  .supp-block > summary small { font-weight: 400; letter-spacing: 0; color: var(--charcoal-400); }
+  .supp-block[open] > summary, .supp-block > summary:hover { color: var(--warm-bright); }
 </style>
 </head>
 <body>
@@ -159,6 +168,12 @@
           <input type="checkbox" id="one-year">
           <label for="one-year">Use the most recent year only (one-year self-employment history)</label>
         </div>
+
+        <details id="supp" class="supp-block">
+          <summary>+ Other Form 1040 income — Schedule B, C&nbsp;#2, D, E, F <small>(optional · Form 91 Section I)</small></summary>
+          <p class="field-hint" style="margin:12px 0 2px;">Form 91 sums every income schedule on the personal return. Add only items that recur and are expected to continue; these are personal (never weighted by ownership). Net <strong>rental</strong> income on Schedule E uses <strong>Form 92</strong>, not here.</p>
+          <div id="supp-lines"></div>
+        </details>
       </div>
 
       <div>
@@ -201,7 +216,8 @@
         <li>Each year's <strong>adjusted cash flow</strong> is built on Fannie Mae <span class="formula">Form 1084</span>. Start with the return's bottom line, then <strong>add back</strong> the non-cash deductions \u2014 depreciation, depletion, amortization/casualty loss, business use of home \u2014 and <strong>subtract</strong> nonrecurring income and the non-deductible travel & meals exclusion (Schedule C: lines 3a\u20133g; B3-3.6-03).</li>
         <li><strong>Vehicle mileage</strong> (Form 1084 line 3d): when the standard mileage deduction is used, the depreciation portion is added back as <span class="formula">business miles \u00d7 the IRS factor</span> for that year \u2014 2026 = $0.35, 2025 = $0.33, 2024 = $0.30, 2023 = $0.28, 2022/2021 = $0.26.</li>
         <li><strong>Partnerships (1065) and S-corps (1120S):</strong> K-1 ordinary income, net rental, and guaranteed payments are already your share and are <em>not</em> weighted (lines 7 / 9). The business-return adjustments (depreciation, depletion, amortization, \u2212notes payable &lt;1yr, \u2212travel/entertainment) are summed and <span class="formula">\u00d7 your ownership %</span> (lines 8 / 10). S-corp adds your <strong>W-2</strong> from the entity.</li>
-        <li><strong>C-corp (1120):</strong> taxable income \u2212 total tax + the add-backs \u2212 notes payable \u2212 travel/entertainment, then <strong>less dividends paid to you</strong>, used only when you own <span class="formula">100%</span> (line 11). Add your W-2 from the corporation.</li>
+        <li><strong>C-corp (1120):</strong> taxable income \u2212 total tax + the add-backs \u2212 notes payable \u2212 travel/entertainment. Under <span class="formula">Fannie 1084</span> this is taken <strong>less dividends paid to you</strong> and only at <span class="formula">100%</span> ownership (line 11). Under <span class="formula">Freddie Form 91 \u00a710</span> the corporate subtotal is instead <strong>weighted by your ownership %</strong> with no dividend subtraction \u2014 the selector handles this automatically. Either way, add your W-2 from the corporation.</li>
+        <li><strong>Form 91 Section I \u2014 other 1040 schedules.</strong> Freddie's Schedule Analysis Method sums every recurring income schedule on the personal return, not just the business. The optional <span class="formula">Other Form 1040 income</span> drawer captures <strong>Schedule B</strong> (recurring interest &amp; dividends, less any 1120 dividends already counted), a <strong>second Schedule C</strong>, <strong>Schedule D</strong> recurring capital gains, <strong>Schedule E royalties</strong>, and <strong>Schedule F</strong> farming. These are personal items, summed at 100% (never ownership-weighted). Net <strong>rental</strong> income on Schedule E uses <span class="formula">Form 92</span>, not this tool.</li>
         <li><strong>Averaging by program (same add-backs, different combine).</strong> <span class="formula">Fannie, Freddie, VA, USDA</span> use the <span class="formula">24-month average</span> and analyze the trend (a decline is flagged to document, not auto-substituted). <span class="formula">FHA</span> instead qualifies on the <strong>lower</strong> of the 24-month average and the most-recent year (HUD 4000.1 II.A). VA adds a separate <strong>residual-income</strong> test; USDA splits <strong>repayment income</strong> (qualifying, with add-backs) from <strong>annual household income</strong> for the 115%-of-AMI eligibility cap.</li>
         <li><strong>K-1 distributions are not income.</strong> Ordinary income counts only if distributed or supported by business liquidity; cash distributions themselves establish access, not qualifying income (Form 1084 instructions; Freddie 5304.1(e)). Flags surface declines, &lt;25% ownership, loss years, and the distribution/liquidity test.</li>
       </ol>
@@ -312,6 +328,32 @@
     ]}
   };
 
+  // Form 91 Section I — supplemental 1040 income schedules that coexist with any structure.
+  // Personal-return items: summed at 100%, never weighted by ownership.
+  const SUPP = [
+    { key:'b_int',    label:'Recurring interest income', sub:'Schedule B \u00b7 Form 91 \u00a72', sign:1, h:'Schedule B \u2014 interest & dividends' },
+    { key:'b_div',    label:'Recurring dividend income', sub:'Schedule B \u00b7 Form 91 \u00a72', sign:1 },
+    { key:'b_div1120',label:'Less: dividends already counted from 1120', sub:'Form 91 \u00a72 \u00b7 avoids double-count', sign:-1 },
+    { key:'c2_net',   label:'Net profit or (loss)', sub:'2nd Sch C \u00b7 Line 31', sign:1, h:'Schedule C \u2014 business #2' },
+    { key:'c2_nonrec',label:'Nonrecurring other (income) / loss', sub:'subtract income, add a loss (enter loss as \u2212)', sign:-1 },
+    { key:'c2_deplt', label:'Depletion', sub:'Sch C', sign:1 },
+    { key:'c2_deprec',label:'Depreciation', sub:'Sch C', sign:1 },
+    { key:'c2_miles', label:'Business miles driven', sub:'\u00d7 IRS depreciation factor', sign:1, mileage:true },
+    { key:'c2_meals', label:'Non-deductible travel & meals', sub:'Sch C', sign:-1 },
+    { key:'c2_home',  label:'Business use of home', sub:'Sch C', sign:1 },
+    { key:'c2_amort', label:'Amortization / casualty loss', sub:'Sch C', sign:1 },
+    { key:'d_gain',   label:'Recurring capital gains / (losses)', sub:'Schedule D \u00b7 Form 91 \u00a75 \u00b7 enter a loss as \u2212', sign:1, h:'Schedule D \u2014 capital gains' },
+    { key:'e_roy',    label:'Royalties received', sub:'Schedule E \u00b7 Form 91 \u00a76', sign:1, h:'Schedule E \u2014 royalties (rental \u2192 Form 92)' },
+    { key:'e_exp',    label:'Total expenses', sub:'Schedule E', sign:-1 },
+    { key:'e_deplt',  label:'Depletion', sub:'Schedule E', sign:1 },
+    { key:'f_net',    label:'Net farm profit or (loss)', sub:'Schedule F \u00b7 Form 91 \u00a77 \u00b7 enter a loss as \u2212', sign:1, h:'Schedule F \u2014 farming' },
+    { key:'f_coop',   label:'Non-taxable co-op & CCC payments (recurring)', sub:'Schedule F', sign:1 },
+    { key:'f_nonrec', label:'Nonrecurring other income / (loss)', sub:'enter a loss as \u2212', sign:1 },
+    { key:'f_deprec', label:'Depreciation', sub:'Schedule F', sign:1 },
+    { key:'f_amort',  label:'Amortization / casualty loss / depletion', sub:'Schedule F', sign:1 },
+    { key:'f_home',   label:'Business use of home', sub:'Schedule F', sign:1 }
+  ];
+
   // A program is a rule layer over the shared Form 1084 engine. Add-backs are identical;
   // programs differ in how the two years are combined and in their flags / reminders.
   const PROGRAMS = {
@@ -345,6 +387,7 @@
       }
       const row = document.createElement('div');
       row.className = 'line-row';
+      if (line.key === 'c_div') row.id = 'row-c_div';   // togglable: Freddie Form 91 has no dividend line
       row.innerHTML =
         '<div class="line-label">' + line.label + '<small>' + line.sub + '</small></div>' +
         '<input class="mini-input" type="number" step="100" data-line="' + line.key + '" data-yr="1" placeholder="0">' +
@@ -353,7 +396,36 @@
     });
     box.querySelectorAll('input').forEach(i => { i.addEventListener('input', calc); });
     $('ownership-field').classList.toggle('is-hidden', !cfg.ownership);
+    applyProgramRows();
     calc();
+  }
+
+  // Freddie Form 91 §10 has no "dividends paid" line; hide that C-corp row under Freddie
+  // (the value is preserved and simply ignored in the math while hidden).
+  function applyProgramRows(){
+    const divRow = $('row-c_div');
+    if (divRow) divRow.classList.toggle('is-hidden', STRUCT === 'ccorp' && PROG === 'freddie');
+  }
+
+  function renderSupp(){
+    const box = $('supp-lines');
+    box.innerHTML = '';
+    SUPP.forEach(line => {
+      if (line.h) {
+        const hd = document.createElement('div');
+        hd.className = 'subhead tight';
+        hd.textContent = line.h;
+        box.appendChild(hd);
+      }
+      const row = document.createElement('div');
+      row.className = 'line-row';
+      row.innerHTML =
+        '<div class="line-label">' + line.label + '<small>' + line.sub + '</small></div>' +
+        '<input class="mini-input" type="number" step="100" data-line="' + line.key + '" data-yr="1" placeholder="0">' +
+        '<input class="mini-input" type="number" step="100" data-line="' + line.key + '" data-yr="2" placeholder="0">';
+      box.appendChild(row);
+    });
+    box.querySelectorAll('input').forEach(i => { i.addEventListener('input', calc); });
   }
 
   function val(key, yr){
@@ -365,13 +437,23 @@
     const cfg = STRUCTURES[STRUCT];
     const taxYear = parseInt(yr === 1 ? $('year1').value : $('year2').value, 10);
     const own = (parseFloat($('ownership').value) || 0) / 100;
+    const freddieCcorp = (STRUCT === 'ccorp' && PROG === 'freddie');
     let sum = 0;
     cfg.lines.forEach(line => {
+      // Freddie Form 91 §10 weights the 1120 subtotal by ownership % and has no "dividends paid" line.
+      if (freddieCcorp && line.key === 'c_div') return;
       let raw = val(line.key, yr);
-      if (line.mileage) raw = raw * (MILE[taxYear] || 0);   // 1084 L3d vehicle depreciation
+      if (line.mileage) raw = raw * (MILE[taxYear] || 0);   // L3d vehicle depreciation
       let c = line.sign * raw;
       if (line.own) c *= own;                               // 1065/1120S business subtotal x ownership %
+      else if (freddieCcorp && line.key !== 'c_w2') c *= own; // Form 91 C-corp ownership weighting (W-2 stays 100%)
       sum += c;
+    });
+    // Form 91 Section I supplemental schedules (personal, never ownership-weighted)
+    SUPP.forEach(line => {
+      let raw = val(line.key, yr);
+      if (line.mileage) raw = raw * (MILE[taxYear] || 0);
+      sum += line.sign * raw;
     });
     return sum;
   }
@@ -447,8 +529,12 @@
     if (cfg.ownership && STRUCT !== 'ccorp' && s.ownPct > 0 && s.ownPct < 25) {
       add('<b>Below 25% ownership.</b> Not treated as self-employed \u2014 handled under the &lt;25% K-1 rules (B3-3.4-19); the business returns may not be required.', true);
     }
-    if (STRUCT === 'ccorp' && s.ownPct > 0 && s.ownPct < 100) {
-      add('<b>C-corp under 100% ownership.</b> Form 1084 uses 1120 corporate income only at 100% ownership. Below that, qualify on W-2 and documented dividends instead.', true);
+    if (STRUCT === 'ccorp') {
+      if (PROG === 'freddie') {
+        add('<b>C-corp \u00b7 Freddie Form 91.</b> The 1120 corporate subtotal is multiplied by your ownership %, and there is no "dividends paid" subtraction (that line is hidden under Freddie). Your W-2 from the corporation is added at 100%.');
+      } else if (s.ownPct > 0 && s.ownPct < 100) {
+        add('<b>C-corp under 100% ownership.</b> Form 1084 uses 1120 corporate income only at 100% ownership. Below that, qualify on W-2 and documented dividends instead \u2014 or switch the program to <b>Freddie</b>, whose Form 91 weights the corporate income by ownership %.', true);
+      }
     }
     if (s.y1 < 0 || s.y2 < 0) {
       add('<b>A year shows a loss.</b> The loss reduces qualifying income and may offset other income; confirm it is not one-time before relying on any add-back.', true);
@@ -464,7 +550,9 @@
   // events
   $('program-seg').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
     $('program-seg').querySelectorAll('button').forEach(x => x.classList.remove('active'));
-    b.classList.add('active'); PROG = b.dataset.prog; calc();
+    b.classList.add('active'); PROG = b.dataset.prog;
+    applyProgramRows();   // toggle the C-corp dividend row without wiping entered values
+    calc();
   }));
   $('structure').addEventListener('change', e => { STRUCT = e.target.value; renderLines(); });
   $('ownership').addEventListener('input', calc);
@@ -472,6 +560,7 @@
   $('year2').addEventListener('change', calc);
   $('one-year').addEventListener('change', calc);
 
+  renderSupp();
   renderLines();
 </script>
 
