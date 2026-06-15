@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Variable Income Averager · The Desk</title>
+<meta name="description" content="Program-aware employment income calculator for FHA, VA, Fannie Mae, Freddie Mac, and USDA. Salary, hourly, bonus, overtime, commission, and tips — with a full-time-hours test that flips fluctuating hourly pay into variable income. Prints to one page." />
+<meta name="robots" content="index, follow" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,ital,wght@9..144,0,300;9..144,0,400;9..144,0,500;9..144,1,300;9..144,1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="desk.css">
+
+<style>
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:24px;}
+.seg button{background:var(--charcoal-900);border:1px solid var(--line-strong);color:var(--charcoal-300);border-radius:8px;padding:11px 6px;font-size:13px;font-weight:500;transition:all .15s;}
+.seg button:hover{color:var(--bone);border-color:var(--warm);}
+.seg button.active{background:var(--warm);color:var(--charcoal-950);border-color:transparent;font-weight:600;}
+
+.prog-seg{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px;}
+.prog-seg button{background:var(--charcoal-900);border:1px solid var(--line-strong);color:var(--charcoal-300);border-radius:9px;padding:12px 6px;text-align:center;transition:all .15s;}
+.prog-seg button .pn{display:block;font-size:14px;font-weight:600;letter-spacing:.01em;}
+.prog-seg button .ps{display:block;font-size:10px;margin-top:3px;color:var(--charcoal-500);letter-spacing:.03em;}
+.prog-seg button:hover{color:var(--bone);border-color:var(--warm);}
+.prog-seg button:hover .ps{color:var(--charcoal-300);}
+.prog-seg button.active{background:var(--warm);color:var(--charcoal-950);border-color:transparent;}
+.prog-seg button.active .pn,.prog-seg button.active .ps{color:var(--charcoal-950);}
+.prog-seg button.active .ps{opacity:.72;}
+
+.prog-ctx{background:var(--charcoal-900);border:1px solid var(--line);border-left:3px solid var(--warm);border-radius:10px;padding:16px 20px;margin-bottom:44px;font-size:14px;line-height:1.55;color:var(--charcoal-200);}
+.prog-ctx b{color:var(--warm-bright);font-weight:600;}
+.prog-ctx .pc-cite{display:block;margin-top:8px;font-size:12px;color:var(--charcoal-500);letter-spacing:.02em;}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.cond{display:none;}
+.cond.show{display:block;}
+
+.subhead{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--warm);font-weight:500;margin:22px 0 10px;}
+.subhead.spaced{margin-top:20px;}
+
+.verdict{background:var(--warm-soft);border:1px solid var(--line-strong);border-radius:10px;padding:22px 20px;margin-bottom:6px;text-align:center;}
+.verdict .v-value{font-family:var(--display);font-size:40px;font-weight:400;color:var(--warm-bright);line-height:1;letter-spacing:-.01em;}
+.verdict .v-value.excluded{font-size:26px;color:var(--caution);}
+.verdict .v-sub{font-size:13px;color:var(--charcoal-200);margin-top:10px;line-height:1.5;}
+.verdict .regime-tag{color:var(--warm);font-weight:600;}
+.verdict-pass{background:var(--positive-soft);}
+.verdict-warn{background:var(--caution-soft);}
+.verdict-warn .v-value{color:var(--caution);}
+
+.line-row{display:flex;justify-content:space-between;align-items:baseline;padding:11px 0;border-bottom:1px dashed var(--line);gap:12px;}
+.line-row:last-child{border-bottom:none;}
+.line-label{font-size:13px;color:var(--charcoal-200);}
+.line-label small{display:block;font-size:11px;color:var(--charcoal-500);margin-top:2px;}
+.line-value{font-family:var(--display);font-size:18px;color:var(--bone);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.line-row.used .line-value{color:var(--warm-bright);}
+.line-row.used .line-label{color:var(--bone);}
+
+.flags{display:flex;flex-direction:column;gap:10px;margin-top:24px;}
+.flag{padding:13px 15px;border-radius:9px;font-size:13px;line-height:1.5;border:1px solid var(--line);background:var(--charcoal-900);border-left:3px solid var(--charcoal-600);}
+.flag.info{border-left-color:var(--warm);}
+.flag.warn{border-left-color:var(--caution);}
+.flag.stop{border-left-color:var(--caution);background:var(--caution-soft);}
+.flag.good{border-left-color:var(--positive);}
+.flag b{color:var(--bone);font-weight:600;}
+
+.check-toggle{display:flex;align-items:flex-start;gap:10px;background:var(--charcoal-900);border:1px solid var(--line-strong);border-radius:8px;padding:13px 15px;cursor:pointer;}
+.check-toggle input{margin-top:2px;accent-color:var(--warm);width:16px;height:16px;flex:none;}
+.check-toggle label{font-size:13px;line-height:1.45;color:var(--charcoal-200);cursor:pointer;}
+.check-toggle b{color:var(--bone);}
+
+.cmp{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;}
+.cmp th,.cmp td{text-align:left;padding:11px 16px 11px 0;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.5;}
+.cmp th{color:var(--warm);font-size:11px;text-transform:uppercase;letter-spacing:.07em;font-weight:600;}
+.cmp td:first-child{color:var(--bone);font-weight:600;white-space:nowrap;padding-right:22px;}
+.cmp td{color:var(--charcoal-200);}
+</style>
+</head>
+<body>
+
+<div class="top-banner">
+  <div class="container">
+    <div class="badges">
+      <span class="badge"><span class="eho-icon"></span> Equal Housing Opportunity</span>
+      <span class="badge">NMLS #1909129</span>
+      <span class="badge">Barrett Financial Group · NMLS #181106</span>
+    </div>
+    <div>For licensed mortgage professionals · Educational use</div>
+  </div>
+</div>
+
+<header class="nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="brand">
+      <div class="brand-mark">D</div>
+      <div class="brand-text"><div class="brand-name">The Desk</div><div class="brand-sub">By Check with Chuck</div></div>
+    </a>
+    <nav class="nav-links">
+      <a href="index.html#tools">Tools</a>
+      <a href="index.html#reference">Reference</a>
+      <a href="index.html#scenarios">Scenarios</a>
+      <a href="index.html#about">About</a>
+    </nav>
+    <a href="https://www.charlesbacigalupi.com" class="nav-back">← checkwithchuck.com</a>
+  </div>
+</header>
+
+<section class="tool-page">
+  <div class="container">
+
+    <div class="print-header print-only">
+      <div class="ph-left">
+        <span class="ph-mark">D</span>
+        <div><div class="ph-name">The Desk</div><div class="ph-sub">By Check with Chuck</div></div>
+      </div>
+      <div class="ph-meta">
+        <div class="ph-tool" id="ph-tool">Variable Income Averager · Fannie Mae</div>
+        <div class="ph-file" id="ph-file"></div>
+        <div class="ph-date" id="ph-date"></div>
+      </div>
+    </div>
+
+    <div class="tool-page-head">
+      <div class="breadcrumb"><a href="index.html">The Desk</a> · Income Analysis · Variable Income Averager</div>
+      <h1>Variable Income <em>Averager</em></h1>
+      <p class="tool-lede">Salary, hourly, bonus, overtime, commission, and tips — calculated by each agency's rulebook. Hourly pay runs through a full-time-hours test that decides whether it qualifies as stable base income or flips to variable and gets averaged.</p>
+    </div>
+
+    <div class="prog-select no-print">
+      <div class="prog-seg" id="prog-seg">
+        <button data-prog="fannie" class="active"><span class="pn">Fannie</span><span class="ps">B3-3.3-02</span></button>
+        <button data-prog="freddie"><span class="pn">Freddie</span><span class="ps">5303.4</span></button>
+        <button data-prog="fha"><span class="pn">FHA</span><span class="ps">4000.1</span></button>
+        <button data-prog="va"><span class="pn">VA</span><span class="ps">Ch. 4</span></button>
+        <button data-prog="usda"><span class="pn">USDA</span><span class="ps">HB-1-3555</span></button>
+      </div>
+    </div>
+    <div class="prog-ctx no-print" id="prog-ctx"></div>
+
+    <div class="calc-grid">
+      <div class="calc-input">
+        <h3>Income</h3>
+        <p class="calc-sub">Pick the income type. Hourly is tested for full-time consistency; if hours fluctuate it converts to variable.</p>
+
+        <div class="seg" id="type-seg">
+          <button data-type="salary">Salary</button>
+          <button data-type="hourly" class="active">Hourly</button>
+          <button data-type="overtime">Overtime</button>
+          <button data-type="bonus">Bonus</button>
+          <button data-type="commission">Commission</button>
+          <button data-type="tips">Tips</button>
+        </div>
+
+        <!-- SALARY -->
+        <div class="field cond" id="salary-field">
+          <label class="field-label">Current annual salary</label>
+          <div class="input-wrap with-prefix" data-prefix="$"><input type="number" id="salary" placeholder="0" inputmode="decimal" /></div>
+          <div class="field-hint">Gross annualized base salary from the offer letter / VOE.</div>
+        </div>
+
+        <!-- HOURLY rate + full-time standard -->
+        <div class="two-col cond" id="rate-row">
+          <div class="field">
+            <label class="field-label">Hourly rate</label>
+            <div class="input-wrap with-prefix" data-prefix="$"><input type="number" id="rate" placeholder="0.00" inputmode="decimal" step="0.01" /></div>
+          </div>
+          <div class="field">
+            <label class="field-label">Full-time hrs/wk</label>
+            <div class="input-wrap"><input type="number" id="ft" value="40" min="1" max="80" inputmode="decimal" /></div>
+          </div>
+        </div>
+
+        <!-- shared earnings fields (hourly + variable types) -->
+        <div id="var-fields">
+          <div class="field">
+            <label class="field-label" id="lbl-py2">Prior Year 2 — oldest full year</label>
+            <div class="input-wrap with-prefix" data-prefix="$"><input type="number" id="py2" placeholder="0" inputmode="decimal" /></div>
+            <div class="field-hint" id="hint-py2">Earliest complete year (e.g. 2024) from the W-2 / VOE.</div>
+          </div>
+
+          <div class="field">
+            <label class="field-label" id="lbl-py1">Prior Year 1 — most recent full year</label>
+            <div class="input-wrap with-prefix" data-prefix="$"><input type="number" id="py1" placeholder="0" inputmode="decimal" /></div>
+            <div class="field-hint" id="hint-py1">Most recently completed calendar year (e.g. 2025).</div>
+          </div>
+
+          <div class="two-col">
+            <div class="field">
+              <label class="field-label" id="lbl-ytd">Year-to-date</label>
+              <div class="input-wrap with-prefix" data-prefix="$"><input type="number" id="ytd" placeholder="0" inputmode="decimal" /></div>
+            </div>
+            <div class="field">
+              <label class="field-label">YTD months</label>
+              <div class="input-wrap"><input type="number" id="ytdm" placeholder="0" min="0" max="12" step="0.5" inputmode="decimal" /></div>
+            </div>
+          </div>
+          <div class="field-hint" id="hint-ytdm" style="margin-top:-10px;margin-bottom:22px;">Months elapsed through the paystub date — e.g. 5 for an end-of-May stub.</div>
+        </div>
+
+        <div class="field cond" id="base-field">
+          <label class="field-label">Monthly base / other income</label>
+          <div class="input-wrap with-prefix" data-prefix="$"><input type="number" id="base" placeholder="0" inputmode="decimal" /></div>
+          <div class="field-hint">Drives the FHA 25%-of-total-income commission test.</div>
+        </div>
+
+        <div class="field cond" id="exp-field">
+          <label class="field-label">Unreimbursed business expenses — annual</label>
+          <div class="input-wrap with-prefix" data-prefix="$"><input type="number" id="exp" placeholder="0" inputmode="decimal" /></div>
+          <div class="field-hint">FHA nets these out of gross commission when commission exceeds 25% of total income.</div>
+        </div>
+
+        <div class="cond" id="stab-field">
+          <div class="check-toggle">
+            <input type="checkbox" id="stab" />
+            <label for="stab">Income has <b>stabilized</b> after the decline, and it's documented. Fannie requires this confirmation before declining variable income can be used at all.</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="result-panel">
+        <span class="eyebrow">Qualifying Result</span>
+        <h3>Monthly income</h3>
+
+        <div class="verdict" id="verdict">
+          <div class="v-value" id="r-qual">$0</div>
+          <div class="v-sub" id="r-sub">Enter figures to calculate.</div>
+        </div>
+
+        <div id="breakdown"></div>
+        <div class="flags" id="flags"></div>
+
+        <button class="print-btn no-print" id="print-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Print / Save PDF
+        </button>
+      </div>
+    </div>
+
+    <div class="math-notes">
+      <h4>The five programs, side by side</h4>
+      <table class="cmp">
+        <thead><tr><th>Program</th><th>History</th><th>Qualifying calculation</th><th>Declining income</th></tr></thead>
+        <tbody>
+          <tr><td>Fannie Mae</td><td>24 mo (12 mo with offsets)</td><td>Stable/rising: (prior yr + YTD) ÷ months, min 12</td><td>Must confirm stabilized, else <b>ineligible</b>; then YTD ÷ months since stabilizing</td></tr>
+          <tr><td>Freddie Mac</td><td>Hourly 12 mo + YTD; OT/bonus/comm 24 mo + YTD</td><td>Keyed to fluctuation: ≤10% leans on YTD; &gt;10% analyze; &gt;30% extra docs</td><td>Verify the reason; support the amount used</td></tr>
+          <tr><td>FHA</td><td>24 mo (12 mo w/ docs)</td><td><b>Lesser of</b> the 2-yr average and the most-recent-yr average</td><td>Handled automatically — the lower recent year wins the lesser-of</td></tr>
+          <tr><td>VA</td><td>24 mo</td><td>Straight 24-month average</td><td>Underwriter judgment: count the lower year or exclude on borderline files</td></tr>
+          <tr><td>USDA</td><td>~12 mo same line of work</td><td>Repayment: conservative average. <b>Annual</b> household income is a separate eligibility calc</td><td>Declining wages carefully reviewed; use the lower</td></tr>
+        </tbody>
+      </table>
+      <h4 style="margin-top:30px;">Salary &amp; hourly base income</h4>
+      <table class="cmp">
+        <thead><tr><th>Type</th><th>Treatment</th></tr></thead>
+        <tbody>
+          <tr><td>Salary</td><td>Current annualized salary ÷ 12. No averaging. A raise within 12 months or under a year at the rate may require the prior rate or an average.</td></tr>
+          <tr><td>Hourly — full-time</td><td>Average hours/week (YTD base ÷ rate ÷ weeks) at or near the full-time standard → stable base = rate × full-time hrs × 52 ÷ 12. Hours above full-time are overtime, evaluated separately.</td></tr>
+          <tr><td>Hourly — fluctuating</td><td>Average hours/week below the full-time standard → income converts to <b>variable</b> and runs through the selected program's averaging. Freddie keys fluctuating hourly to a 1-year basis.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="print-foot print-only">
+      <strong>The Desk · Variable Income Averager.</strong> Educational tool for licensed mortgage professionals. Output is an estimate, not an approval, a commitment to lend, or a guarantee of qualifying income. Final income determination rests with the underwriter and the applicable agency guideline. Charles Bacigalupi III, NMLS #1909129 · Barrett Financial Group, NMLS #181106. Equal Housing Opportunity.
+    </div>
+
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <h4>The Desk</h4>
+        <p>A working toolkit for loan originators. Curated by Charles Bacigalupi III, NMLS #1909129, at Barrett Financial Group, LLC, NMLS #181106.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Categories</h5>
+        <ul>
+          <li><a href="index.html#tools">VA Loans</a></li>
+          <li><a href="index.html#tools">Income Analysis</a></li>
+          <li><a href="index.html#tools">Qualifying &amp; DTI</a></li>
+          <li><a href="index.html#tools">Refinance</a></li>
+          <li><a href="index.html#reference">Reference Tables</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://www.charlesbacigalupi.com">checkwithchuck.com</a></li>
+          <li><a href="https://www.linkedin.com/in/charles-bacigalupi-iii/">LinkedIn</a></li>
+          <li><a href="https://www.barrettfinancial.com">Barrett Financial</a></li>
+          <li><a href="mailto:charlesb@barrettfinancial.com">Email Chuck</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-compliance">
+      <p><strong style="color: var(--bone);">For licensed mortgage professionals.</strong> The Desk is an educational toolkit. Calculators are estimates only and do not constitute a loan approval, commitment to lend, or a substitute for a Loan Estimate. Use your AUS findings and program guidelines as authoritative.</p>
+      <p>Charles Peter Bacigalupi III · Mortgage Loan Originator · NMLS #1909129. Powered by Barrett Financial Group, LLC · NMLS #181106 · 2701 East Insight Way, Suite 150, Chandler, AZ 85286. Licensed in AZ, CO, CA, TX, FL, WA, NJ. Equal Housing Opportunity.</p>
+      <p class="small">© <span id="year">2026</span> The Desk · checkwithchuck.com</p>
+    </div>
+  </div>
+</footer>
+
+<div class="print-modal" id="print-modal">
+  <div class="print-modal-card">
+    <h4>Print / Save as PDF</h4>
+    <p>Stamp this analysis for the loan file. Both fields are optional.</p>
+    <label>Borrower name</label>
+    <input type="text" id="pm-borrower" placeholder="e.g. John &amp; Jane Smith" />
+    <label>File / loan number</label>
+    <input type="text" id="pm-file" placeholder="optional" />
+    <div class="print-modal-actions">
+      <button class="pm-cancel" id="pm-cancel">Cancel</button>
+      <button class="pm-go" id="pm-go">Print</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var PROG='fannie', TYPE='hourly';
+  var FT_TOL=0.95; // within 5% below full-time still counts as full-time
+  var $=function(id){return document.getElementById(id);};
+  function num(id){var v=parseFloat($(id).value);return isNaN(v)||v<0?0:v;}
+  function money(n){return '$'+Math.round(n).toLocaleString('en-US');}
+  function pct(n){return (n>=0?'+':'')+(n*100).toFixed(1)+'%';}
+
+  var PROG_NAME={fannie:'Fannie Mae',freddie:'Freddie Mac',fha:'FHA',va:'VA',usda:'USDA'};
+  var PROG_CTX={
+    fannie:{m:'<b>Fannie Mae (DU).</b> Stable or increasing income averages the prior year plus YTD over the months included (minimum 12). Decreasing income must be confirmed stabilized — otherwise it cannot be used.',c:'Selling Guide B3-3.3-02 (variable) & B3-3.1-03 (base), eff. 03/04/2026'},
+    freddie:{m:'<b>Freddie Mac (LPA).</b> Fluctuating hourly uses a 1-year history; OT/bonus/commission/tips use 2 years plus YTD. The calc is keyed to the degree of fluctuation: at or under 10% you can lean on the higher YTD average; over 10% needs analysis; over 30% needs documentation.',c:'Single-Family Seller/Servicer Guide 5303.1 & 5303.4'},
+    fha:{m:'<b>FHA.</b> Variable effective income is the <b>lesser</b> of the average over the previous two years and the average over the previous year. Commission over 25% of total income requires tax returns and nets out unreimbursed business expenses.',c:'HUD Handbook 4000.1, II.A.4.c'},
+    va:{m:'<b>VA.</b> A two-year history averaged over 24 months, stable and likely to continue. Declining income is a case-by-case judgment — count the lower year or exclude on borderline files, annotated in the loan analysis remarks.',c:'VA Lender&rsquo;s Handbook (Pamphlet 26-7), Chapter 4'},
+    usda:{m:'<b>USDA.</b> This computes <b>repayment</b> income (the DTI figure) — stable, dependable. Remember the separate <b>annual household income</b> calc (all adult members, projected 12 months) governs eligibility against the county limit.',c:'HB-1-3555, Chapter 9: Income Analysis'}
+  };
+  var BASE_NOTE={
+    fannie:'Base income uses the current rate; a 2-year work history is the norm and continuance is assumed absent evidence otherwise.',
+    freddie:'Base income uses the current rate with a 2-year work history; continuance must be likely.',
+    fha:'Base income uses the current rate; document a 2-year employment history and likelihood of continued employment.',
+    va:'Base income uses the current rate; verify stable, reliable employment expected to continue.',
+    usda:'Base repayment income uses the current rate; verify dependable employment. Annual household income is a separate eligibility calc.'
+  };
+  var TYPE_NOTE={
+    salary:'Fixed salaried income — current annualized salary ÷ 12. A raise within the last 12 months, or under a year at the current rate, may require the prior rate or an average.',
+    hourly:'Hourly is base income when the schedule is consistently full-time, and variable when hours fluctuate. The full-time test decides which.',
+    overtime:'Overtime must be likely to continue and supported by history (program minimums vary).',
+    bonus:'Bonus income needs a documented history and continuance. An annual lump-sum bonus is annualized (÷12). Exclude one-time / signing bonuses.',
+    commission:'Commission history and documentation tighten as it grows as a share of total income. FHA splits at 25%.',
+    tips:'Tip income generally needs a 2-year history and tax-return or 4137 support. Unreported cash tips cannot be used.'
+  };
+
+  document.querySelectorAll('#prog-seg button').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('#prog-seg button').forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active');PROG=b.dataset.prog;syncFields();calc();
+    });
+  });
+  document.querySelectorAll('#type-seg button').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('#type-seg button').forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active');TYPE=b.dataset.type;syncFields();calc();
+    });
+  });
+  ['py2','py1','ytd','ytdm','base','exp','salary','rate','ft'].forEach(function(id){$(id).addEventListener('input',calc);});
+  $('stab').addEventListener('change',calc);
+
+  function show(id,on){$(id).classList.toggle('show',!!on);}
+  function vis(id,on){$(id).style.display=on?'':'none';}
+
+  function syncFields(){
+    var t=TYPE, isComm=(t==='commission'), isHourly=(t==='hourly'), isSalary=(t==='salary');
+    show('salary-field',isSalary);
+    show('rate-row',isHourly);
+    vis('var-fields',!isSalary);
+    show('base-field',isComm);
+    show('exp-field',isComm && PROG==='fha');
+    // relabel earnings fields for hourly (base income) vs variable
+    if(isHourly){
+      $('lbl-py2').textContent='Prior Year 2 base income (W-2)';
+      $('lbl-py1').textContent='Prior Year 1 base income (W-2)';
+      $('lbl-ytd').textContent='YTD base income';
+      $('hint-py2').textContent='Base wages only (exclude OT/bonus) for the earliest year — used if hours are fluctuating.';
+      $('hint-py1').textContent='Base wages only for the most recent full year.';
+    } else {
+      $('lbl-py2').textContent='Prior Year 2 — oldest full year';
+      $('lbl-py1').textContent='Prior Year 1 — most recent full year';
+      $('lbl-ytd').textContent='Year-to-date';
+      $('hint-py2').textContent='Earliest complete year (e.g. 2024) from the W-2 / VOE.';
+      $('hint-py1').textContent='Most recently completed calendar year (e.g. 2025).';
+    }
+  }
+
+  // ---- shared program engine (variable income) ----
+  function programQualify(prog,py2,py1,ytd,ytdm,stabilized,isBaseHourly){
+    var fullYears=(py1>0?1:0)+(py2>0?1:0);
+    var hasYtd=ytd>0 && ytdm>0;
+    var py1m=py1>0?py1/12:0, ytdMonthly=hasYtd?ytd/ytdm:0;
+    var avg24=(py1+py2)/24;
+    var avg24ytd=(py1+py2+ytd)/(24+(hasYtd?ytdm:0));
+    var avg12ytd=(py1+ytd)/(12+(hasYtd?ytdm:0));
+    var basis=isBaseHourly?py1m:avg24;
+    var fluct=(ytdMonthly>0 && basis>0)?(ytdMonthly-basis)/basis:null;
+    var curVsPrior=(py1m>0 && hasYtd)?(ytdMonthly-py1m)/py1m:null;
+    var yoyFull=(py2>0 && py1>0)?(py1-py2)/py2:null;
+    var declining=(curVsPrior!==null && curVsPrior<-0.05)||(curVsPrior===null && yoyFull!==null && yoyFull<-0.05);
+    var rising=(curVsPrior!==null && curVsPrior>0.05)||(curVsPrior===null && yoyFull!==null && yoyFull>0.05);
+    var r={qual:0,method:'',rows:[],notes:[],excluded:false,fullYears:fullYears,
+           curVsPrior:curVsPrior,yoyFull:yoyFull,
+           trendStatus:declining?'down':(rising?'up':'flat'),
+           trendLabel:declining?'Declining':(rising?'Increasing':'Stable')};
+
+    if(prog==='fannie'){
+      if(declining){
+        if(stabilized){r.qual=ytdMonthly;r.method='YTD ÷ months since stabilization';}
+        else{r.qual=0;r.excluded=true;r.method='ineligible until stabilization confirmed';
+          r.notes.push({c:'stop',t:'<b>Decreasing income.</b> Fannie does not allow declining variable income unless you confirm and document that it has stabilized after the decline. Check the box once you can support that, or the income is excluded.'});}
+      }else{
+        r.qual=avg12ytd;r.method='(prior year + YTD) ÷ months, min 12';
+        if(rising)r.notes.push({c:'info',t:'<b>Rising trend.</b> Fannie averages the prior year and YTD rather than crediting the full current run-rate.'});
+      }
+      r.rows=[['(Prior yr + YTD) ÷ months','min 12',avg12ytd,!declining],
+              ['YTD monthly','current run-rate',ytdMonthly,declining && stabilized],
+              ['Prior year monthly','PY1 ÷ 12',py1m,false]];
+      if(fullYears<1 && ytdm<12)r.notes.push({c:'warn',t:'<b>Under 12 months.</b> Fannie requires at least 12 months in the calculation; a sub-12-month history needs documented offsetting positives.'});
+    }
+    else if(prog==='freddie'){
+      if(declining){r.qual=isBaseHourly?avg12ytd:avg24ytd;r.method=(isBaseHourly?'1-yr':'2-yr')+' + YTD average (conservative)';
+        r.notes.push({c:'warn',t:'<b>Declining.</b> Verify and document the reason for the decline; the file must support the amount used.'});}
+      else{
+        var f=fluct!==null?Math.abs(fluct):0;
+        if(f<=0.10){r.qual=avg12ytd;r.method='most recent yr + YTD (fluctuation ≤10%)';
+          r.notes.push({c:'info',t:'<b>Fluctuation within 10%.</b> Consistent enough to lean on the shorter, higher YTD-weighted average.'});}
+        else if(f<=0.30){r.qual=isBaseHourly?avg12ytd:avg24ytd;r.method=(isBaseHourly?'1-yr':'2-yr')+' + YTD average (fluctuation &gt;10%)';
+          r.notes.push({c:'warn',t:'<b>Fluctuation '+(fluct*100).toFixed(0)+'%.</b> Over 10% — additional analysis required to confirm stability before using the income.'});}
+        else{r.qual=isBaseHourly?avg12ytd:avg24ytd;r.method=(isBaseHourly?'1-yr':'2-yr')+' + YTD average (fluctuation &gt;30%)';
+          r.notes.push({c:'stop',t:'<b>Fluctuation '+(fluct*100).toFixed(0)+'%.</b> Over 30% — additional analysis and documentation are required to support the amount used.'});}
+      }
+      r.rows=[[(isBaseHourly?'1-yr':'2-yr')+' + YTD average',isBaseHourly?'(PY1+YTD) ÷ months':'(PY1+PY2+YTD) ÷ months',isBaseHourly?avg12ytd:avg24ytd,r.method.indexOf('2-yr')>-1||(isBaseHourly&&r.method.indexOf('1-yr')>-1)],
+              ['Most recent yr + YTD','(PY1+YTD) ÷ months',avg12ytd,r.method.indexOf('most recent')>-1],
+              ['Degree of fluctuation',isBaseHourly?'YTD vs prior yr':'YTD vs prior 2-yr',null,false,fluct!==null?pct(fluct):'—']];
+      r.notes.push({c:'info',t:'Continuance must be documented for at least 3 years.'});
+    }
+    else if(prog==='fha'){
+      var twoYr=fullYears>=2?avg24ytd:avg12ytd, oneYr=avg12ytd;
+      r.qual=Math.min(twoYr,oneYr);r.method='lesser of 2-yr and 1-yr average';
+      r.rows=[['2-yr average','(or length if &lt;2 yr)',twoYr,r.qual===twoYr],
+              ['Most-recent-yr average','(PY1 + YTD)',oneYr,r.qual===oneYr && r.qual!==twoYr]];
+      if(fullYears<2)r.notes.push({c:'warn',t:'<b>Under 2 years.</b> FHA allows a 1-year history if consistently earned and likely to continue, documented.'});
+    }
+    else if(prog==='va'){
+      if(declining){r.qual=Math.min(avg24,ytdMonthly||avg24);r.method='lower of 24-mo avg / YTD (declining)';
+        r.notes.push({c:'warn',t:'<b>Declining.</b> VA leaves this to underwriter judgment — the lower figure is shown. On borderline files the income may be excluded entirely. Annotate the loan analysis remarks.'});}
+      else{r.qual=avg24;r.method='straight 24-month average';}
+      r.rows=[['24-month average','(PY1+PY2) ÷ 24',avg24,!declining],
+              ['YTD monthly','current run-rate',ytdMonthly,declining]];
+      if(fullYears<2)r.notes.push({c:'warn',t:'<b>Under 2 years.</b> A full 2-year history is the VA baseline; document any offsetting strengths.'});
+    }
+    else if(prog==='usda'){
+      r.qual=fullYears>=2?avg24ytd:avg12ytd;
+      r.method=fullYears>=2?'repayment: 2-yr + YTD average':'repayment: 1-yr + YTD average';
+      if(declining){r.qual=Math.min(r.qual,ytdMonthly||r.qual);r.method='repayment: lower figure (declining)';
+        r.notes.push({c:'warn',t:'<b>Declining wages.</b> USDA requires careful review of declining repayment income; the lower figure is shown.'});}
+      r.rows=[['Repayment average',fullYears>=2?'(PY1+PY2+YTD) ÷ months':'(PY1+YTD) ÷ months',r.qual,true],
+              ['YTD monthly','current run-rate',ytdMonthly,false]];
+      r.notes.push({c:'stop',t:'<b>Two numbers, not one.</b> This is the repayment (DTI) figure. Annual household income — every adult member, projected forward 12 months — is a separate calc that determines eligibility against the county moderate-income limit.'});
+      if(fullYears<1 && ytdm<12)r.notes.push({c:'warn',t:'USDA looks for roughly one year in the same or similar line of work.'});
+    }
+    return r;
+  }
+
+  function calc(){
+    var ctx=PROG_CTX[PROG];
+    $('prog-ctx').innerHTML='<div>'+ctx.m+'</div><span class="pc-cite">'+ctx.c+'</span>';
+    $('ph-tool').textContent='Variable Income Averager · '+PROG_NAME[PROG];
+
+    if(TYPE==='salary'){ salaryPath(); return; }
+    if(TYPE==='hourly'){ hourlyPath(); return; }
+    variablePath();
+  }
+
+  // ---- SALARY ----
+  function salaryPath(){
+    var sal=num('salary');
+    var notes=[{c:'info',t:TYPE_NOTE.salary},{c:'info',t:BASE_NOTE[PROG]}];
+    if(sal<=0){ paint(0,'',[],notes,false,'flat','',null,null); return; }
+    var m=sal/12;
+    var rows=[['Annual salary','as stated',sal,false],
+              ['__sub__','Qualifying'],
+              ['Monthly base','salary ÷ 12',m,true]];
+    paint(m,'annual salary ÷ 12',rows,notes,false,'flat','Fixed base',null,null);
+  }
+
+  // ---- HOURLY (full-time test) ----
+  function hourlyPath(){
+    var rate=num('rate'), ft=num('ft')||40;
+    var py2=num('py2'), py1=num('py1'), ytd=num('ytd'), ytdm=num('ytdm');
+    var hasYtd=ytd>0 && ytdm>0;
+    var notes=[{c:'info',t:TYPE_NOTE.hourly}];
+
+    if(rate<=0 || !hasYtd){
+      paint(0,'',[],notes.concat([{c:'info',t:'Enter the hourly rate, YTD base income, and YTD months to run the full-time test.'}]),false,'flat','',null,null);
+      return;
+    }
+
+    var weeks=ytdm*52/12;
+    var totalHrs=ytd/rate;
+    var avgHrs=totalHrs/weeks;
+    var variance=(avgHrs-ft)/ft;
+    var stable=avgHrs>=ft*FT_TOL;
+
+    var testRows=[['__sub__','Full-time hours test'],
+      ['Hourly rate','as stated',rate,false],
+      ['Period elapsed','from YTD months',null,false,weeks.toFixed(1)+' wks'],
+      ['Avg hours / week','YTD base ÷ rate ÷ weeks',null,true,avgHrs.toFixed(1)+' hrs'],
+      ['Full-time standard','baseline',null,false,ft.toFixed(0)+' hrs'],
+      ['Variance','vs full-time',null,false,pct(variance)]];
+
+    if(stable){
+      var monthly=rate*ft*52/12;
+      var rows=testRows.concat([['__sub__','Qualifying — stable base'],
+        ['Hourly base','rate × '+ft+' × 52 ÷ 12',monthly,true]]);
+      notes.push({c:'good',t:'<b>Consistent full-time.</b> Average '+avgHrs.toFixed(1)+' hrs/wk meets the '+ft+'-hour standard, so this qualifies as stable base income at the contractual rate.'});
+      if(avgHrs>ft*1.05){
+        notes.push({c:'info',t:'<b>Hours run above full-time.</b> The ~'+(avgHrs-ft).toFixed(1)+' hrs/wk over full-time are effectively overtime — evaluate that surplus under the Overtime methodology, separate from this base figure.'});
+      }
+      notes.push({c:'info',t:BASE_NOTE[PROG]});
+      paint(monthly,'rate × '+ft+' hrs × 52 ÷ 12 (stable full-time)',rows,notes,false,'flat','Full-time · stable base',null,null);
+    } else {
+      var r=programQualify(PROG,py2,py1,ytd,ytdm,$('stab').checked,true);
+      notes.push({c:'warn',t:'<b>Fluctuating hours.</b> Average '+avgHrs.toFixed(1)+' hrs/wk is below the '+ft+'-hour standard ('+pct(variance)+'), so the income is treated as <b>variable</b> and averaged under '+PROG_NAME[PROG]+'.'});
+      notes=notes.concat(r.notes);
+      var rows=testRows.concat([['__sub__','Qualifying — variable (fluctuating hours)']]).concat(r.rows);
+      paint(r.qual,'fluctuating hours → '+r.method,rows,notes,r.excluded,r.trendStatus,r.trendLabel,r.curVsPrior,r.yoyFull);
+    }
+  }
+
+  // ---- VARIABLE (OT / bonus / commission / tips) ----
+  function variablePath(){
+    var py2=num('py2'), py1=num('py1'), ytd=num('ytd'), ytdm=num('ytdm'), base=num('base'), exp=num('exp');
+    var hasYtd=ytd>0 && ytdm>0;
+    var notes=[{c:'info',t:TYPE_NOTE[TYPE]}];
+
+    var declining0=false;
+    {
+      var py1m=py1>0?py1/12:0, ytdMonthly=hasYtd?ytd/ytdm:0;
+      var yoyFull=(py2>0&&py1>0)?(py1-py2)/py2:null;
+      var cvp=(py1m>0&&hasYtd)?(ytdMonthly-py1m)/py1m:null;
+      declining0=(cvp!==null&&cvp<-0.05)||(cvp===null&&yoyFull!==null&&yoyFull<-0.05);
+    }
+    show('stab-field',PROG==='fannie' && declining0);
+
+    if(py1<=0 && py2<=0 && !hasYtd){ paint(0,'',[],notes,false,'flat','',null,null); return; }
+
+    var r=programQualify(PROG,py2,py1,ytd,ytdm,$('stab').checked,false);
+    notes=notes.concat(r.notes);
+    var qual=r.qual, method=r.method, rows=r.rows.slice();
+
+    if(TYPE==='commission'){
+      if(base>0){
+        var totalMo=qual+base, share=totalMo>0?qual/totalMo:0;
+        if(share>=0.25 && PROG==='fha'){
+          var netMo=Math.max(0,qual-exp/12);
+          notes.push({c:'stop',t:'<b>Commission is '+(share*100).toFixed(0)+'% of total income (≥25%).</b> Two years of signed tax returns required; net commission = gross minus unreimbursed business expenses ('+money(exp)+'/yr → −'+money(exp/12)+'/mo).'});
+          qual=netMo;method='lesser-of, net of business expenses';
+          rows.push(['Net of business expenses','gross − expenses ÷ 12',netMo,true]);
+        } else if(share>=0.25){
+          notes.push({c:'warn',t:'<b>Commission is '+(share*100).toFixed(0)+'% of total income (≥25%).</b> Expect tax-return documentation; verify the program-specific treatment of business expenses.'});
+        } else {
+          notes.push({c:'info',t:'Commission is '+(share*100).toFixed(0)+'% of total income (under 25%) — standard employment documentation typically suffices.'});
+        }
+      } else {
+        notes.push({c:'info',t:'Enter monthly base income to run the 25%-of-total-income test.'});
+      }
+      if(r.fullYears<2 && PROG==='va') notes.push({c:'warn',t:'VA commission under 2 years needs at least 1 full year plus a background in the field; under 1 year is unlikely to be usable.'});
+    }
+
+    paint(qual,method,rows,notes,r.excluded,r.trendStatus,r.trendLabel,r.curVsPrior,r.yoyFull);
+  }
+
+  // ---- render ----
+  function paint(qual,method,rows,notes,excluded,trendStatus,trendLabel,curVsPrior,yoyFull){
+    var vEl=$('verdict'), qEl=$('r-qual'), sEl=$('r-sub');
+    vEl.classList.remove('verdict-pass','verdict-warn');
+
+    if(!method){ qEl.textContent='$0';qEl.classList.remove('excluded');sEl.textContent='Enter figures to calculate.';
+      $('breakdown').innerHTML='';$('flags').innerHTML=renderFlags(notes);return; }
+
+    if(excluded){qEl.textContent='Excluded';qEl.classList.add('excluded');vEl.classList.add('verdict-warn');}
+    else{qEl.textContent=money(qual);qEl.classList.remove('excluded');
+      vEl.classList.add((trendStatus==='down')?'verdict-warn':'verdict-pass');}
+
+    var delta=curVsPrior!=null?(' · '+pct(curVsPrior)+' vs prior yr'):(yoyFull!=null?(' · '+pct(yoyFull)+' YoY'):'');
+    var sub = excluded
+      ? '<span class="regime-tag">'+method+'</span>'
+      : money(qual*12)+' / yr · <span class="regime-tag">'+method+'</span>'+(trendLabel?'<br>'+trendLabel+delta:'');
+    sEl.innerHTML=sub;
+
+    var bd='';
+    rows.forEach(function(r){
+      if(r[0]==='__sub__'){ bd+='<div class="subhead spaced">'+r[1]+'</div>'; return; }
+      var label=r[0],sub2=r[1],val=r[2],used=r[3],ov=r[4];
+      var vtxt=ov!==undefined?ov:(val!=null?money(val):'—');
+      bd+='<div class="line-row'+(used?' used':'')+'"><span class="line-label">'+label+'<small>'+sub2+'</small></span><span class="line-value">'+vtxt+'</span></div>';
+    });
+    $('breakdown').innerHTML=bd;
+    $('flags').innerHTML=renderFlags(notes);
+  }
+
+  function renderFlags(notes){
+    return notes.map(function(n){return '<div class="flag '+n.c+'">'+n.t+'</div>';}).join('');
+  }
+
+  // ---- print ----
+  function openModal(){$('print-modal').classList.add('open');}
+  function closeModal(){$('print-modal').classList.remove('open');}
+  $('print-btn').addEventListener('click',openModal);
+  $('pm-cancel').addEventListener('click',closeModal);
+  $('print-modal').addEventListener('click',function(e){if(e.target===$('print-modal'))closeModal();});
+  $('pm-go').addEventListener('click',function(){
+    var b=$('pm-borrower').value.trim(), f=$('pm-file').value.trim();
+    var parts=[];
+    if(b)parts.push('Borrower: '+b);
+    if(f)parts.push('File #'+f);
+    $('ph-file').textContent=parts.join('  ·  ');
+    closeModal();
+    setTimeout(function(){window.print();},120);
+  });
+
+  var d=new Date();
+  $('ph-date').textContent='Prepared '+d.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});
+  $('year').textContent=d.getFullYear();
+
+  syncFields();calc();
+})();
+</script>
+</body>
+</html>
